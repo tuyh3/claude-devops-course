@@ -66,16 +66,16 @@
    - 🎯 **适用场景**: 有 Java 基础，但不懂 Spring Boot
    - 👥 **目标读者**: Java 开发者转型 Spring Boot，或完全零基础学习者
    - 📖 **内容概要**:
-     - Spring Boot 核心概念（IoC、依赖注入、自动配置）
-     - 项目三层架构详解（Controller-Service-Repository）
-     - 10+ 个核心注解详细讲解（@SpringBootApplication, @RestController等）
-     - 数据流转完整示例
-     - RESTful API 开发入门
-     - ResponseEntity 和 HTTP 状态码
-     - JSON 请求和响应处理
-     - 代码示例全程配图解释
-   - ⏱️ **阅读时长**: 约 45-60 分钟
-   - 💡 **建议**: 🔥 零基础学习 Spring Boot 必读！通俗易懂，配合项目代码学习
+     - **第1章**: Spring Boot 核心概念（IoC、依赖注入、自动配置）
+     - **第2章**: 项目三层架构详解（Controller-Service-Repository）
+     - **第3章**: 10+ 个核心注解详细讲解（@SpringBootApplication, @RestController等）
+     - **第4章**: 读懂现有代码（逐行解析项目代码）
+     - **第5章**: 自己动手写代码（完整 CRUD 实战）
+     - **第6章**: 调试与测试（IDEA 调试、日志、Postman）
+     - **第7章**: 常见问题与解决方案（错误排查大全）
+     - **第8章**: 学习资源与下一步（学习路径建议）
+   - ⏱️ **阅读时长**: 约 90-120 分钟（完整版）
+   - 💡 **建议**: 🔥 零基础学习 Spring Boot 必读！通俗易懂，从理论到实战，配合项目代码学习
 
 ---
 
