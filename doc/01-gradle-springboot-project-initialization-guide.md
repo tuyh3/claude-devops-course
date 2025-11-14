@@ -395,6 +395,182 @@ dependencies {
 }
 ```
 
+#### 🔥 依赖配置详解（重点！Maven 用户必看）
+
+很多 Maven 用户看到 Gradle 的依赖配置会困惑：**为什么依赖前面的单词都不一样**（`implementation`、`runtimeOnly`、`testImplementation` 等）？
+
+这些单词叫做 **Dependency Configuration（依赖配置）**，相当于 Maven 中的 **`<scope>`**。
+
+##### 📊 完整对照表
+
+| Maven Scope | Gradle Configuration | 什么时候用 | 典型例子 |
+|-------------|---------------------|-----------|---------|
+| `<scope>compile</scope>` | `implementation` | 编译和运行都需要 | Spring Boot Starter、业务代码依赖 |
+| `<scope>runtime</scope>` | `runtimeOnly` | 只在运行时需要 | 数据库驱动（JDBC Driver） |
+| `<scope>provided</scope>` | `compileOnly` | 编译时需要，运行时由容器提供 | Servlet API、Lombok |
+| `<scope>test</scope>` | `testImplementation` | 只在测试时需要 | JUnit、Mockito、Spring Test |
+| （无对应） | `testRuntimeOnly` | 测试运行时需要 | H2 内存数据库（测试用） |
+| （无对应） | `developmentOnly` | 开发时需要，打包时排除 | Spring Boot DevTools |
+| （无对应） | `annotationProcessor` | 编译时注解处理 | Lombok、配置处理器 |
+| `compile`（传递） | `api` | 编译时传递给依赖方 | 库项目的公共 API |
+
+##### 🔍 实际项目示例解析
+
+以本项目的 `build.gradle` 为例：
+
+```groovy
+dependencies {
+    // ① implementation = Maven 的 compile scope
+    // 说明：编译和运行都需要，会传递给依赖它的模块
+    // 使用场景：你的业务代码里要 import 这些类
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // ② runtimeOnly = Maven 的 runtime scope
+    // 说明：只在运行时需要，编译时不需要
+    // 为什么？因为代码里用的是接口，不直接 import 具体实现
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.6.0.24.10'
+    // 你的代码：@Autowired DataSource dataSource;  ← 用的是 javax.sql.DataSource 接口
+    // 没有直接 import oracle.jdbc.OracleDriver，所以编译不需要 ojdbc11
+
+    // ③ developmentOnly = Gradle 特有（Maven 没有对应）
+    // 说明：只在开发环境用，打包成 JAR 时不会包含
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // DevTools 用于热部署，生产环境不需要，所以打包时排除
+
+    // ④ annotationProcessor = 编译时注解处理器
+    // 说明：编译时处理注解，生成代码，不会打包到最终 JAR
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    // 处理 @ConfigurationProperties 注解，生成元数据，方便 IDE 自动补全
+
+    // ⑤ testImplementation = Maven 的 test scope
+    // 说明：只在 src/test 目录编译和运行时需要
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // ⑥ testRuntimeOnly = 测试运行时才需要（Maven 没有对应）
+    // 说明：测试编译时不需要，测试运行时需要
+    testRuntimeOnly 'com.h2database:h2'
+    // H2 用于测试，代码里用的是 DataSource 接口，所以编译不需要 H2
+}
+```
+
+##### 💡 为什么要这么设计？
+
+**Maven 的问题**：
+- 只有 4 个 scope（`compile`、`runtime`、`provided`、`test`），不够精细
+- 无法区分"开发时需要但生产不需要"的依赖
+- 无法区分"测试编译需要"和"测试运行需要"
+
+**Gradle 的优势**：
+1. **更精细的控制**：区分编译、运行、测试、开发等不同场景
+2. **更快的构建**：只在需要的时候加载依赖
+3. **更小的 JAR 包**：`developmentOnly` 的依赖不会打包进去
+4. **更清晰的意图**：一眼就能看出依赖的用途
+
+##### 🎯 记忆口诀
+
+如果觉得难记，记住这 3 个最常用的就够了：
+
+```groovy
+dependencies {
+    // 1️⃣ implementation - 最常用（80%的依赖都用这个）
+    //    我的代码里要 import 这个包的类 → 用 implementation
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 2️⃣ runtimeOnly - 数据库驱动专用
+    //    我的代码用的是 JDBC 接口，不直接用驱动类 → 用 runtimeOnly
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+
+    // 3️⃣ testImplementation - 测试专用
+    //    测试代码里要 import JUnit/Mockito → 用 testImplementation
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+```
+
+##### 📝 实战对比：Spring Boot + Oracle 项目
+
+**Maven 写法**：
+```xml
+<dependencies>
+    <!-- 业务代码需要 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- 运行时需要 -->
+    <dependency>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc11</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+
+    <!-- 测试需要 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- 开发时热部署（Maven 没有好办法排除） -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+        <optional>true</optional>  <!-- 只能用 optional -->
+    </dependency>
+</dependencies>
+```
+
+**Gradle 写法**（更清晰）：
+```groovy
+dependencies {
+    // 业务代码需要
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 运行时需要
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.6.0.24.10'
+
+    // 测试需要
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // 开发时热部署（打包时自动排除）
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // 测试时用内存数据库（Maven 很难做到这么清晰）
+    testRuntimeOnly 'com.h2database:h2'
+}
+```
+
+##### ❓ 常见疑问
+
+**Q1: 为什么数据库驱动要用 `runtimeOnly` 而不是 `implementation`？**
+
+A: 因为你的代码里用的是 `DataSource`、`Connection` 这些 JDBC 接口，不会直接 `import oracle.jdbc.OracleDriver`。编译时只需要 JDBC API（已包含在 JDK 中），运行时才需要具体的驱动实现。
+
+```java
+// 你的代码（编译时不需要 ojdbc11）
+@Autowired
+private DataSource dataSource;  // ← javax.sql.DataSource 接口
+
+// 不会这样写（如果这样写才需要 implementation）
+import oracle.jdbc.OracleDriver;  // ✗ 不推荐直接用
+```
+
+**Q2: `implementation` 和 `api` 有什么区别？**
+
+A: 只有在开发库（library）项目时才需要关心：
+- `implementation`：依赖不传递给使用方（推荐，编译更快）
+- `api`：依赖传递给使用方（相当于 Maven 的默认行为）
+
+对于应用项目（如 Spring Boot 应用），统一用 `implementation` 就行。
+
+**Q3: `developmentOnly` 和 `compileOnly` 有什么区别？**
+
+A:
+- `compileOnly`：编译时需要，运行时由容器提供（如 Servlet API）
+- `developmentOnly`：开发时需要，打包时自动排除（如 DevTools）
+
 ### 4.3 多模块项目对比
 
 #### Maven 多模块
