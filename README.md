@@ -151,6 +151,12 @@ vim src/main/resources/application-local.yml
    - 内容：RAC 配置、JPA 使用、常见问题
    - 时长：30 分钟
 
+4. **[项目配置完全指南](doc/04-project-configuration-guide.md)** ⭐ 新手必读
+   - 适合：所有开发者，特别是新加入项目的成员
+   - 内容：配置文件详解、数据库配置、不同场景配置、密码管理
+   - 时长：15 分钟
+   - 重点：手把手教你如何修改配置文件
+
 ### 数据库资源
 
 - **[Oracle 数据库创建脚本](doc/oracle_dbpv_create_data.sql)**
