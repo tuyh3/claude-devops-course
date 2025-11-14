@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: claude-devops-course
+
+  # Oracle RAC Database Configuration
+  datasource:
+    # RAC Connection URL with SCAN (Single Client Access Name)
+    # 格式: jdbc:oracle:thin:@//SCAN-IP:PORT/SERVICE_NAME
+    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=192.168.1.66)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=192.168.1.67)(PORT=1521))(LOAD_BALANCE=ON)(FAILOVER=ON))(CONNECT_DATA=(SERVICE_NAME=dbpv)(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC))))
+    username: TCBS
+    password: your_password_here  # 请修改为实际密码
+    driver-class-name: oracle.jdbc.OracleDriver
+
+    # HikariCP Connection Pool Configuration (推荐用于生产环境)
+    hikari:
+      pool-name: OracleHikariCP
+      minimum-idle: 5
+      maximum-pool-size: 20
+      max-lifetime: 1800000  # 30分钟
+      connection-timeout: 30000  # 30秒
+      idle-timeout: 600000  # 10分钟
+      connection-test-query: SELECT 1 FROM DUAL
+
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.Oracle12cDialect
+    show-sql: true  # 开发环境显示SQL，生产环境设置为false
+    hibernate:
+      ddl-auto: validate  # 生产环境使用validate，开发环境可用update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.devops.course: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Development Tools
+spring.devtools:
+  restart:
+    enabled: true
+  livereload:
+    enabled: true
+
+# Application Information
+info:
+  app:
+    name: Claude DevOps Course
+    description: 一个用 Claude Code 辅助学习各种语言、中间件和数据库的项目
+    version: 1.0.0
+    java-version: ${java.version}
+    database: Oracle 19c RAC

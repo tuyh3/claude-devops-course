@@ -1,0 +1,6 @@
+/*
+ * Claude DevOps Course
+ * 一个用 Claude Code 辅助学习各种语言、中间件和数据库的项目
+ */
+
+rootProject.name = 'claude-devops-course'
