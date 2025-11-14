@@ -27,6 +27,10 @@ dependencies {
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.6.0.24.10'
     runtimeOnly 'com.oracle.database.jdbc:ucp:23.6.0.24.10'  // Universal Connection Pool (for RAC)
 
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
     // Development Tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
