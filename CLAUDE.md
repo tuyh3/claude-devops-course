@@ -26,7 +26,7 @@ The project is configured with the following specific versions based on industry
 
 - **Java**: Java 21 (LTS) - configured with Java toolchain
 - **Gradle**: 9.2.x - used for build automation (Maven is explicitly NOT used)
-- **Spring Boot**: 3.5.7 - main application framework
+- **Spring Boot**: 3.3.8 - main application framework
 - **Database**: Oracle 19c RAC (Real Application Clusters with ASM)
 - **ORM Framework**: Spring Data JPA with Hibernate
 - **Connection Pool**: HikariCP (built into Spring Boot)
@@ -192,7 +192,7 @@ The project follows Spring Boot best practices with a three-tier architecture:
 
 ### Spring Boot Configuration
 
-- Spring Boot version: 3.5.7 (configured in build.gradle)
+- Spring Boot version: 3.3.8 (configured in build.gradle)
 - Application configuration: `src/main/resources/application.yml`
 - Default server port: 8080
 - Spring Boot DevTools enabled for hot reload during development

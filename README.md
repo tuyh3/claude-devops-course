@@ -3,7 +3,7 @@
 > 🎓 一个用 Claude Code 辅助学习各种语言、中间件和数据库的实战项目
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.7-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.8-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Gradle](https://img.shields.io/badge/Gradle-9.2.0-blue.svg)](https://gradle.org/)
 [![Oracle](https://img.shields.io/badge/Oracle-19c%20RAC-red.svg)](https://www.oracle.com/database/)
 
@@ -99,7 +99,7 @@ vim src/main/resources/application-local.yml
 |--------|------|------|
 | **核心框架** |
 | Java (LTS) | 21 | ⭐ 项目使用 |
-| Spring Boot | 3.5.7 | ⭐ 项目使用 |
+| Spring Boot | 3.3.8 | ⭐ 项目使用 |
 | Gradle | 9.2.0 | ⭐ 项目使用 |
 | **数据库** |
 | Oracle | 19c RAC | ⭐ 项目使用 |

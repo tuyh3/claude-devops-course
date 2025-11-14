@@ -2,6 +2,7 @@ package com.devops.course;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test class for Main application
  */
 @SpringBootTest
+@ActiveProfiles("test")
 class MainTest {
 
     @Test

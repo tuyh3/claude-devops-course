@@ -292,14 +292,14 @@ java {
 <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.7</version>
+    <version>3.3.8</version>
 </parent>
 ```
 
 **Gradle (build.gradle):**
 ```groovy
 plugins {
-    id 'org.springframework.boot' version '3.5.7'
+    id 'org.springframework.boot' version '3.3.8'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 ```
@@ -688,7 +688,7 @@ git rebase origin/main
 // 在 build.gradle 中使用 BOM 管理版本
 dependencies {
     // 使用 Spring Boot BOM
-    implementation platform('org.springframework.boot:spring-boot-dependencies:3.5.7')
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.3.8')
 
     // 不需要指定版本号
     implementation 'org.springframework.boot:spring-boot-starter-web'
