@@ -62,6 +62,21 @@
    - ⏱️ **阅读时长**: 约 15 分钟
    - 💡 **建议**: ⭐ 强烈推荐！配置项目前必读，可以避免 90% 的配置错误
 
+5. **[Spring Boot 零基础入门指南](05-spring-boot-beginner-guide.md)** 🔥 零基础必读
+   - 🎯 **适用场景**: 有 Java 基础，但不懂 Spring Boot
+   - 👥 **目标读者**: Java 开发者转型 Spring Boot，或完全零基础学习者
+   - 📖 **内容概要**:
+     - Spring Boot 核心概念（IoC、依赖注入、自动配置）
+     - 项目三层架构详解（Controller-Service-Repository）
+     - 10+ 个核心注解详细讲解（@SpringBootApplication, @RestController等）
+     - 数据流转完整示例
+     - RESTful API 开发入门
+     - ResponseEntity 和 HTTP 状态码
+     - JSON 请求和响应处理
+     - 代码示例全程配图解释
+   - ⏱️ **阅读时长**: 约 45-60 分钟
+   - 💡 **建议**: 🔥 零基础学习 Spring Boot 必读！通俗易懂，配合项目代码学习
+
 ---
 
 ## 📋 文档规划
