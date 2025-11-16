@@ -1,18 +1,643 @@
-# Spring Boot 零基础入门指南（适合有 Java 基础的开发者）
+# Spring Boot 零基础入门指南（适合刚学完 Java 基础的开发者）
 
-> 📢 **写给 Java 开发者**：如果你会 Java 基础（类、对象、接口、注解），但不懂 Spring Boot，这份文档将手把手教你读懂这个项目，并能自己编写代码。
+> 📢 **写给 Java 初学者**：如果你刚学完 Java 基础（类、对象、方法）和数据库基础（增删改查），完全不懂 Web 开发，这份文档将从零开始，手把手教你读懂这个项目，并能自己编写代码。
 
 ---
 
 ## 📋 目录
 
+- [第零章：Web 开发基础概念（完全零基础必读）](#第零章web-开发基础概念完全零基础必读)
 - [第一章：Spring Boot 是什么](#第一章spring-boot-是什么)
 - [第二章：项目架构解析](#第二章项目架构解析)
 - [第三章：注解详解（必看！）](#第三章注解详解必看)
 - [第四章：读懂现有代码](#第四章读懂现有代码)
 - [第五章：自己动手写代码](#第五章自己动手写代码)
-- [第六章：调试技巧](#第六章调试技巧)
-- [第七章：常见问题](#第七章常见问题)
+- [第六章：调试与测试](#第六章调试与测试)
+- [第七章：常见问题与解决方案](#第七章常见问题与解决方案)
+- [第八章：学习资源与下一步](#第八章学习资源与下一步)
+
+---
+
+## 第零章：Web 开发基础概念（完全零基础必读）
+
+> 🎓 **如果你只会 Java 基础和 SQL，从这里开始！** 这一章用最简单的语言解释 Web 开发的基本概念。
+
+### 0.1 什么是 Web 应用程序？
+
+**简单来说**：能用浏览器访问的程序就是 Web 应用程序。
+
+**你每天都在用的 Web 应用**：
+- 淘宝、京东（电商网站）
+- 微信网页版、QQ 邮箱（通信工具）
+- B站、优酷（视频网站）
+- 百度、Google（搜索引擎）
+
+**对比你之前写的 Java 程序**：
+
+| 类型 | 运行方式 | 交互方式 | 例子 |
+|------|---------|---------|------|
+| **控制台程序** | 在命令行运行 | 键盘输入，黑窗口输出 | 你写的 `HelloWorld.java` |
+| **Web 程序** | 在浏览器访问 | 网页界面，鼠标点击 | 淘宝、B站 |
+
+**你之前写的 Java 程序**：
+```java
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello World");  // 输出到黑色命令行窗口
+    }
+}
+// 运行：java HelloWorld
+// 输出：在控制台显示 "Hello World"
+```
+
+**Web 程序**：
+```java
+@RestController
+public class HelloController {
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello World";  // 输出到浏览器
+    }
+}
+// 访问：打开浏览器，输入 http://localhost:8080/hello
+// 输出：在浏览器页面显示 "Hello World"
+```
+
+**关键区别**：
+- **控制台程序**：你运行一次，输出一次，程序结束
+- **Web 程序**：程序一直运行，等待浏览器访问，处理请求后返回结果，继续等待
+
+### 0.2 客户端和服务器是什么？
+
+**用餐厅来比喻**（这是理解 Web 开发最重要的概念）：
+
+| 角色 | Web 开发中 | 餐厅里 | 做什么 |
+|------|-----------|-------|--------|
+| **客户端（Client）** | 你的浏览器 | 你（顾客） | 发起请求 |
+| **服务器（Server）** | 你写的 Spring Boot 程序 | 厨房 | 处理请求，返回结果 |
+| **请求（Request）** | "给我客户列表" | "我要一份宫保鸡丁" | 顾客提需求 |
+| **响应（Response）** | 返回客户数据 | 端上一盘菜 | 厨房交付 |
+
+**完整流程**：
+```
+1. 你（客户端）：打开浏览器，输入 http://localhost:8080/api/customers
+   ↓
+2. 浏览器：发送请求到服务器 → "给我客户列表"
+   ↓
+3. 服务器（你写的 Spring Boot 程序）：
+   - 收到请求
+   - 从数据库查询客户数据
+   - 返回数据给浏览器
+   ↓
+4. 浏览器：显示客户列表
+```
+
+**图示**：
+```
+┌─────────────────┐                    ┌──────────────────────┐
+│    浏览器        │ ──── 请求 ───→   │  Spring Boot 程序   │
+│  (客户端/前端)   │                    │   (服务器/后端)      │
+│                 │ ←─── 响应 ────   │                      │
+│  你看到的页面    │                    │    你写的代码        │
+└─────────────────┘                    └──────────────────────┘
+                                                  ↓
+                                         ┌──────────────┐
+                                         │   数据库     │
+                                         │  (存储数据)   │
+                                         └──────────────┘
+```
+
+**形象理解**：
+- 你写的 Spring Boot 程序 = 一个一直在运行的餐厅（24小时营业）
+- 浏览器访问 = 顾客来点菜
+- 程序返回数据 = 厨房做好菜端出来
+
+### 0.3 HTTP 是什么？
+
+**HTTP = HyperText Transfer Protocol（超文本传输协议）**
+
+**简单来说**：浏览器和服务器之间对话的"语言规则"。
+
+**类比**：
+- 你和朋友聊天要用中文或英文
+- 浏览器和服务器对话要用 HTTP
+
+**一个 HTTP 请求长什么样**：
+
+```
+GET /api/customers/CUST001 HTTP/1.1        ← 请求行
+Host: localhost:8080                        ← 请求头
+Content-Type: application/json              ← 请求头
+
+（这里可以有请求体，GET 请求通常没有）
+```
+
+**分解理解**：
+1. **`GET`**：动作（我要"获取"数据）
+2. **`/api/customers/CUST001`**：要什么（客户 ID 为 CUST001 的数据）
+3. **`Host: localhost:8080`**：找谁（本地服务器，端口 8080）
+
+### 0.4 HTTP 方法（动词）- 就像餐厅里的不同操作
+
+**类比：你和餐厅服务员的对话**
+
+| HTTP 方法 | 中文含义 | 餐厅场景 | Web 场景 | 代码 |
+|-----------|---------|---------|---------|------|
+| **GET** | 获取/查询 | "给我看菜单" | 查询客户列表 | `@GetMapping` |
+| **POST** | 创建/添加 | "点一份宫保鸡丁" | 创建新客户 | `@PostMapping` |
+| **PUT** | 更新/修改 | "把这道菜换成不辣的" | 更新客户信息 | `@PutMapping` |
+| **DELETE** | 删除 | "撤掉这道菜" | 删除客户 | `@DeleteMapping` |
+
+**示例对比**：
+
+```bash
+# GET：查询所有客户（只查询，不改数据）
+GET http://localhost:8080/api/customers
+→ 返回：[{客户1}, {客户2}, {客户3}]
+
+# POST：创建新客户（添加数据）
+POST http://localhost:8080/api/customers
+请求体：{"customerId": "CUST001", "customerName": "张三"}
+→ 返回：创建成功的客户信息
+
+# PUT：更新客户（修改数据）
+PUT http://localhost:8080/api/customers/CUST001
+请求体：{"customerName": "李四"}
+→ 返回：更新后的客户信息
+
+# DELETE：删除客户（删除数据）
+DELETE http://localhost:8080/api/customers/CUST001
+→ 返回：删除成功
+```
+
+**对应你学过的数据库操作**：
+
+| HTTP 方法 | 对应的 SQL | 说明 |
+|-----------|-----------|------|
+| `GET` | `SELECT * FROM customers` | 查询数据 |
+| `POST` | `INSERT INTO customers VALUES (...)` | 插入数据 |
+| `PUT` | `UPDATE customers SET ... WHERE ...` | 更新数据 |
+| `DELETE` | `DELETE FROM customers WHERE ...` | 删除数据 |
+
+### 0.5 URL 是什么？怎么找到服务器？
+
+#### 0.5.1 URL（网址）
+
+**URL = Uniform Resource Locator（统一资源定位符）**
+
+**简单来说**：就是网址，用来找到服务器上的某个资源。
+
+**分解一个 URL**：
+```
+http://localhost:8080/api/customers/CUST001
+│      │         │    │                │
+│      │         │    │                └─── 具体资源（客户ID）
+│      │         │    └───────────────── 路径（找哪个功能）
+│      │         └────────────────────── 端口号（找哪个程序）
+│      └──────────────────────────────── 主机地址（找哪台电脑）
+└─────────────────────────────────────── 协议（怎么通信）
+```
+
+**类比快递地址**：
+- **协议（http）**：快递方式（顺丰、邮政）
+- **主机（localhost）**：省市（北京市）
+- **端口（8080）**：区县（朝阳区）
+- **路径（/api/customers）**：街道门牌号（某小区某栋楼）
+- **资源（CUST001）**：收件人（张三）
+
+#### 0.5.2 IP 地址和端口号
+
+**IP 地址**：电脑在网络上的"门牌号"
+
+| IP 地址 | 含义 |
+|---------|------|
+| `127.0.0.1` 或 `localhost` | 你自己的电脑（本地开发用） |
+| `192.168.1.66` | 局域网内的某台电脑（如公司数据库） |
+| `220.181.38.148` | 互联网上的某台电脑（如百度服务器） |
+
+**端口号**：一台电脑上的"房间号"
+
+一台电脑可以运行多个程序，端口号用来区分"找哪个程序"。
+
+| 端口号 | 用途 |
+|--------|------|
+| `8080` | Spring Boot 默认端口（你写的程序） |
+| `3306` | MySQL 数据库 |
+| `1521` | Oracle 数据库 |
+| `80` | HTTP 默认端口（访问网站时可以省略） |
+
+**示例**：
+```
+http://localhost:8080   ← 访问本地 8080 端口的程序（你的 Spring Boot）
+http://192.168.1.66:1521 ← 访问局域网 192.168.1.66 的 1521 端口（Oracle 数据库）
+```
+
+### 0.6 JSON 是什么？为什么需要它？
+
+**JSON = JavaScript Object Notation（JavaScript 对象表示法）**
+
+**简单来说**：一种用纯文本表示数据的格式，浏览器和服务器都能看懂。
+
+#### 0.6.1 为什么需要 JSON？
+
+**问题**：浏览器不懂 Java 对象！
+
+```java
+// 服务器（Java 程序）
+Customer customer = new Customer();
+customer.setCustomerId("CUST001");
+customer.setCustomerName("张三");
+
+// ❌ 不能直接发给浏览器，浏览器看不懂 Java 对象！
+```
+
+**解决方案**：转换成 JSON（纯文本）
+
+```java
+// 服务器：把 Java 对象转成 JSON
+Customer → {"customerId":"CUST001", "customerName":"张三"}
+
+// 浏览器：收到 JSON，显示给用户
+```
+
+#### 0.6.2 Java 对象 vs JSON
+
+**Java 对象**（只能在 Java 程序中用）：
+```java
+Customer customer = new Customer();
+customer.setCustomerId("CUST001");
+customer.setCustomerName("张三");
+customer.setContactPhone("13800138000");
+```
+
+**JSON**（浏览器、Java、Python 等都能用）：
+```json
+{
+  "customerId": "CUST001",
+  "customerName": "张三",
+  "contactPhone": "13800138000"
+}
+```
+
+**类比**：
+- Java 对象 = 你的方言（只有同乡能听懂）
+- JSON = 普通话（大家都能听懂）
+
+#### 0.6.3 Spring Boot 自动转换 JSON
+
+**好消息**：你不需要手动转换！Spring Boot 自动帮你做。
+
+```java
+@GetMapping("/customers/{id}")
+public Customer getCustomer(@PathVariable String id) {
+    Customer customer = customerService.findById(id);
+    return customer;
+    // ✅ Spring Boot 自动把 Customer 对象转成 JSON 返回给浏览器
+}
+```
+
+**浏览器收到的 JSON**：
+```json
+{
+  "customerId": "CUST001",
+  "customerName": "张三",
+  "contactPhone": "13800138000",
+  "status": "ACTIVE"
+}
+```
+
+#### 0.6.4 JSON 基本语法
+
+```json
+{
+  "字段名1": "字符串值",          // 字符串用双引号
+  "字段名2": 123,                // 数字不用引号
+  "字段名3": true,               // 布尔值：true 或 false
+  "字段名4": null,               // 空值
+  "字段名5": [1, 2, 3],          // 数组
+  "字段名6": {                   // 嵌套对象
+    "子字段1": "值"
+  }
+}
+```
+
+### 0.7 数据库在 Web 开发中的作用
+
+你已经学过数据库的 SQL（增删改查），现在看看在 Web 开发中怎么用。
+
+#### 0.7.1 为什么需要数据库？
+
+**问题**：数据存在哪里？
+
+```java
+// ❌ 错误做法：数据存在内存里
+List<Customer> customers = new ArrayList<>();
+customers.add(new Customer("CUST001", "张三"));
+// 问题：程序重启后，数据全部丢失！
+
+// ✅ 正确做法：数据存在数据库（硬盘）里
+customerRepository.save(new Customer("CUST001", "张三"));
+// 程序重启后，数据还在！
+```
+
+#### 0.7.2 数据库表 vs Java 类
+
+**数据库表**（存储在硬盘）：
+```sql
+CREATE TABLE CUSTOMERS (
+    CUSTOMER_ID VARCHAR(20) PRIMARY KEY,
+    CUSTOMER_NAME VARCHAR(100),
+    CONTACT_PHONE VARCHAR(20)
+);
+```
+
+**Java 实体类**（对应数据库表）：
+```java
+@Entity
+@Table(name = "CUSTOMERS")
+public class Customer {
+    @Id
+    private String customerId;
+    private String customerName;
+    private String contactPhone;
+}
+```
+
+**Spring Boot 自动映射**：
+- Java 类的字段 `customerId` ↔ 数据库列 `CUSTOMER_ID`
+- Java 类的字段 `customerName` ↔ 数据库列 `CUSTOMER_NAME`
+
+#### 0.7.3 SQL vs Spring Data JPA
+
+**你学过的 SQL**：
+```sql
+-- 查询所有客户
+SELECT * FROM customers;
+
+-- 根据 ID 查询
+SELECT * FROM customers WHERE customer_id = 'CUST001';
+
+-- 插入数据
+INSERT INTO customers (customer_id, customer_name) VALUES ('CUST001', '张三');
+
+-- 更新数据
+UPDATE customers SET customer_name = '李四' WHERE customer_id = 'CUST001';
+
+-- 删除数据
+DELETE FROM customers WHERE customer_id = 'CUST001';
+```
+
+**Spring Boot 中（不需要写 SQL！）**：
+```java
+// 查询所有客户
+customerRepository.findAll();
+
+// 根据 ID 查询
+customerRepository.findById("CUST001");
+
+// 插入/更新数据（save 方法自动判断是插入还是更新）
+customerRepository.save(customer);
+
+// 删除数据
+customerRepository.deleteById("CUST001");
+```
+
+**好消息**：Spring Data JPA 自动把 Java 方法转换成 SQL！
+
+### 0.8 什么是框架？为什么需要 Spring Boot？
+
+#### 0.8.1 什么是框架？
+
+**简单来说**：框架就是一个"半成品程序"，帮你快速开发。
+
+**类比**：
+
+| 场景 | 不用框架 | 用框架 |
+|------|---------|-------|
+| **盖房子** | 你要自己烧砖、拌水泥、设计图纸 | 开发商提供毛坯房，你只需装修 |
+| **做饭** | 你要自己种菜、养鸡、磨面粉 | 超市买食材，你只需烹饪 |
+| **写程序** | 你要处理 HTTP、数据库、JSON... | Spring Boot 处理底层，你只需写业务 |
+
+#### 0.8.2 不用框架有多麻烦？
+
+**示例：写一个"查询客户"功能**
+
+**不用 Spring Boot（100+ 行代码）**：
+```java
+public class CustomerServlet extends HttpServlet {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        // 1. 解析 URL 参数
+        String customerId = request.getParameter("id");
+
+        // 2. 手动连接数据库（每次都要写）
+        Connection conn = null;
+        try {
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            conn = DriverManager.getConnection(
+                "jdbc:oracle:thin:@//192.168.1.66:1521/DBPV",
+                "TCBS",
+                "password"
+            );
+
+            // 3. 手动写 SQL
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT * FROM customers WHERE customer_id = ?"
+            );
+            stmt.setString(1, customerId);
+            ResultSet rs = stmt.executeQuery();
+
+            // 4. 手动转换成 Java 对象（每个字段都要写）
+            Customer customer = null;
+            if (rs.next()) {
+                customer = new Customer();
+                customer.setCustomerId(rs.getString("customer_id"));
+                customer.setCustomerName(rs.getString("customer_name"));
+                customer.setContactPhone(rs.getString("contact_phone"));
+                // ... 10 个字段要写 10 行 ...
+            }
+
+            // 5. 手动转换成 JSON（容易出错）
+            String json = "{\"customerId\":\"" + customer.getCustomerId() +
+                          "\",\"customerName\":\"" + customer.getCustomerName() + "\"}";
+
+            // 6. 返回响应
+            response.setContentType("application/json");
+            response.getWriter().write(json);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // 7. 手动关闭连接（忘了会内存泄漏）
+            if (conn != null) conn.close();
+        }
+    }
+}
+// 还要配置 web.xml（20 行）
+// 还要下载和部署 Tomcat
+```
+
+**用 Spring Boot（10 行代码）**：
+```java
+@RestController
+@RequestMapping("/api/customers")
+public class CustomerController {
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Customer> getCustomer(@PathVariable String id) {
+        Optional<Customer> customer = customerRepository.findById(id);
+        return customer.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+}
+
+// Spring Boot 自动帮你做了：
+// ✅ HTTP 请求解析
+// ✅ 数据库连接管理
+// ✅ SQL 自动生成和执行
+// ✅ Java 对象 ↔ 数据库记录 转换
+// ✅ Java 对象 ↔ JSON 转换
+// ✅ 异常处理
+// ✅ Tomcat 服务器启动
+```
+
+#### 0.8.3 Spring Boot 到底帮你做了什么？
+
+| 你需要的功能 | 不用框架（纯 Java） | 用 Spring Boot |
+|-------------|------------------|---------------|
+| 启动 Web 服务器 | 下载 Tomcat，配置，部署（30 分钟） | `./gradlew bootRun`（1 秒） |
+| 连接数据库 | 每次手写连接代码（20 行） | 配置文件写 3 行 |
+| 执行 SQL | 手写 SQL + 参数绑定（10 行） | 调用方法（1 行） |
+| Java 对象转 JSON | 手动拼接字符串（易出错） | 自动转换 |
+| 处理 HTTP 请求 | 写 Servlet，配置 XML（50 行） | 一个注解 `@GetMapping` |
+| 管理对象创建 | 到处 `new`，容易内存泄漏 | Spring 自动管理 |
+
+### 0.9 从控制台程序到 Web 程序
+
+**你已经会的**（Java 基础）：
+```java
+// 1. 定义类
+public class Customer {
+    private String customerId;
+    private String customerName;
+
+    // 2. 构造方法
+    public Customer(String id, String name) {
+        this.customerId = id;
+        this.customerName = name;
+    }
+
+    // 3. Getter/Setter
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    // 4. 方法
+    public String getInfo() {
+        return "Customer: " + customerName;
+    }
+}
+
+// 5. 使用
+public static void main(String[] args) {
+    Customer c = new Customer("001", "张三");
+    System.out.println(c.getInfo());  // 输出到控制台
+}
+```
+
+**现在要学的**（Spring Boot Web 开发）：
+```java
+// 1. 实体类（对应数据库表）
+@Entity
+@Table(name = "CUSTOMERS")
+public class Customer {
+    @Id
+    private String customerId;
+    private String customerName;
+    // Lombok 自动生成 getter/setter，不用手写
+}
+
+// 2. Repository（数据访问层，接口即可，不需要写实现）
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, String> {
+    // Spring Data JPA 自动实现所有方法
+}
+
+// 3. Controller（接收浏览器请求）
+@RestController
+@RequestMapping("/api/customers")
+public class CustomerController {
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @GetMapping("/{id}")
+    public Customer getCustomer(@PathVariable String id) {
+        return customerRepository.findById(id).orElse(null);
+        // 返回给浏览器，自动转成 JSON
+    }
+}
+```
+
+**对比理解**：
+
+| Java 基础概念 | Spring Boot 对应概念 | 说明 |
+|--------------|-------------------|------|
+| 类和对象 | Entity（实体类） | 对应数据库表 |
+| 方法调用 | HTTP 请求 | 浏览器调用你的方法 |
+| `new` 创建对象 | `@Autowired` 注入对象 | Spring 自动创建和管理对象 |
+| `System.out.println()` | `return` 返回 JSON | 输出到浏览器而不是控制台 |
+| `main` 方法 | `@GetMapping` 等注解 | 程序入口 |
+
+**最关键的区别**：
+
+| 控制台程序 | Web 程序 |
+|-----------|---------|
+| 运行一次就结束 | 一直运行，等待请求 |
+| 你手动调用方法 | 浏览器通过 URL 调用方法 |
+| 数据输出到黑窗口 | 数据返回给浏览器 |
+| 一次性筷子（用完即弃） | 餐厅（一直营业） |
+
+### 0.10 总结：你现在应该理解的概念
+
+读完第零章，你应该理解了：
+
+✅ **Web 程序 vs 控制台程序**
+   - 控制台程序：运行一次，输出到黑窗口
+   - Web 程序：一直运行，浏览器访问，返回数据到网页
+
+✅ **客户端和服务器**
+   - 客户端（浏览器）= 餐厅顾客
+   - 服务器（你的程序）= 餐厅厨房
+   - 请求和响应 = 点菜和上菜
+
+✅ **HTTP 方法**
+   - GET = 查询（SELECT）
+   - POST = 创建（INSERT）
+   - PUT = 更新（UPDATE）
+   - DELETE = 删除（DELETE）
+
+✅ **URL、IP、端口**
+   - URL = 网址（怎么找到资源）
+   - IP = 电脑的门牌号
+   - 端口 = 房间号（找哪个程序）
+
+✅ **JSON**
+   - Java 对象 → JSON：Spring Boot 自动转换
+   - 浏览器和服务器之间传数据都用 JSON
+
+✅ **数据库的作用**
+   - 存储数据（硬盘，永久保存）
+   - SQL → Spring Data JPA 方法（自动转换）
+
+✅ **框架（Spring Boot）的作用**
+   - 不用框架：100 行代码
+   - 用框架：10 行代码
+   - Spring Boot 自动处理 HTTP、数据库、JSON
+
+**下一步**：现在你已经具备了学习 Spring Boot 的基础知识，继续阅读第一章，深入学习 Spring Boot！
 
 ---
 

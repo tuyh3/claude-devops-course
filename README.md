@@ -157,11 +157,11 @@ vim src/main/resources/application-local.yml
    - 时长：15 分钟
    - 重点：手把手教你如何修改配置文件
 
-5. **[Spring Boot 零基础入门指南](doc/05-spring-boot-beginner-guide.md)** 🔥 零基础必读
-   - 适合：有 Java 基础但不懂 Spring Boot 的开发者
-   - 内容：8个完整章节，从核心概念到实战开发，包含调试和问题排查
-   - 时长：90-120 分钟（完整版）
-   - 重点：从零开始学习 Spring Boot，读懂代码、写代码、调试代码
+5. **[Spring Boot 零基础入门指南](doc/05-spring-boot-beginner-guide.md)** 🔥 完全零基础必读
+   - 适合：刚学完 Java 基础和数据库基础，完全不懂 Web 开发的初学者
+   - 内容：9个完整章节（含第0章 Web 基础概念），从 Web 原理到实战开发
+   - 时长：120-150 分钟（完整版）
+   - 重点：从客户端/服务器开始讲起，手把手教学，读懂代码、写代码、调试代码
 
 ### 数据库资源
 
