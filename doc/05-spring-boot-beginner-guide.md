@@ -655,96 +655,177 @@ public class CustomerController {
 
 ---
 
-## 第一章：Spring Boot 是什么
+## 第一章：Spring Boot 核心机制
 
-### 1.1 传统 Java Web 开发 vs Spring Boot
+> 💡 **承接第零章**：你已经理解了 Web 开发的基本概念和为什么需要框架。现在让我们深入学习 Spring Boot 的两大核心机制：**IoC（控制反转）** 和 **依赖注入**。
 
-**传统方式（你可能见过的）**：
+### 1.1 IoC（控制反转）- Spring 的核心思想
+
+#### 1.1.1 什么是 IoC？
+
+**IoC = Inversion of Control（控制反转）**
+
+**传统方式**（你控制对象的创建）：
 ```java
-// 传统 Servlet 方式
-public class HelloServlet extends HttpServlet {
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-        response.getWriter().println("Hello World");
+public class CustomerController {
+    // 你自己创建对象
+    private CustomerService customerService = new CustomerService();
+
+    public void doSomething() {
+        customerService.findAll();
     }
 }
-// 还需要配置 web.xml，部署到 Tomcat...
 ```
 
-**Spring Boot 方式（现代方式）**：
+**问题**：
+- ❌ 每次都要 `new`，代码重复
+- ❌ 对象之间耦合太紧（CustomerController 直接依赖 CustomerService 的具体实现）
+- ❌ 难以测试（无法替换成 Mock 对象）
+- ❌ 难以管理对象的生命周期
+
+**Spring Boot 方式**（Spring 控制对象的创建）：
 ```java
 @RestController
-public class HelloController {
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello World";  // 就这么简单！
+public class CustomerController {
+
+    @Autowired  // Spring 自动给你创建并注入对象
+    private CustomerService customerService;
+
+    public void doSomething() {
+        customerService.findAll();  // 直接用，不用 new
     }
 }
-// 不需要 web.xml，不需要手动部署 Tomcat
 ```
 
-### 1.2 Spring Boot 的三大优势
+**好处**：
+- ✅ 不用自己 `new`，Spring 帮你创建和管理
+- ✅ 对象之间松耦合（通过接口依赖）
+- ✅ 容易测试（可以注入 Mock 对象）
+- ✅ Spring 统一管理对象的生命周期
 
-#### 优势1：内嵌服务器
+**类比**：
+- **传统方式**：你要吃饭，自己种菜、做饭、洗碗
+- **IoC 方式**：你要吃饭，告诉餐厅（Spring），餐厅帮你做好端上来
 
-**传统方式**：
+#### 1.1.2 Spring IoC 容器
+
+**Spring IoC 容器**：就像一个"对象仓库"，Spring 帮你创建、存储、管理所有对象。
+
+**Spring 管理的对象叫 Bean**（豆子）。
+
 ```
-1. 写代码
-2. 打包成 WAR
-3. 安装 Tomcat
-4. 部署 WAR 到 Tomcat
-5. 启动 Tomcat
-```
-
-**Spring Boot**：
-```bash
-./gradlew bootRun  # 一条命令，自动启动内嵌 Tomcat
-```
-
-#### 优势2：自动配置
-
-**传统方式**：
-```xml
-<!-- 需要写 100 行 XML 配置 -->
-<bean id="dataSource" class="...">
-    <property name="url" value="..."/>
-    <property name="username" value="..."/>
-    ...
-</bean>
-```
-
-**Spring Boot**：
-```yaml
-# 只需要几行 YAML
-spring:
-  datasource:
-    url: jdbc:oracle:thin:@//localhost:1521/dbpv
-    username: TCBS
-    password: password
+┌─────────────────────────────────┐
+│     Spring IoC 容器              │
+│                                 │
+│  ┌─────────────────┐            │
+│  │ CustomerService │ Bean       │
+│  └─────────────────┘            │
+│                                 │
+│  ┌─────────────────┐            │
+│  │CustomerRepository│ Bean      │
+│  └─────────────────┘            │
+│                                 │
+│  ┌─────────────────┐            │
+│  │CustomerController│ Bean      │
+│  └─────────────────┘            │
+│                                 │
+└─────────────────────────────────┘
+         Spring 自动创建和管理
 ```
 
-#### 优势3：起步依赖
+**怎么告诉 Spring 哪些类需要管理？**
 
-**传统方式**：
-```xml
-<!-- 需要手动添加 20+ 个依赖和版本 -->
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-web</artifactId>
-    <version>6.1.0</version>
-</dependency>
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-context</artifactId>
-    <version>6.1.0</version>
-</dependency>
-<!-- ... 还有十几个 -->
+用注解标记：
+- `@Component`：通用组件
+- `@Controller` 或 `@RestController`：控制器
+- `@Service`：服务层
+- `@Repository`：数据访问层
+
+```java
+@Service  // 告诉 Spring：这是一个 Bean，请帮我管理
+public class CustomerService {
+    // Spring 会自动创建这个类的对象
+}
 ```
 
-**Spring Boot**：
-```groovy
-// 一行搞定
-implementation 'org.springframework.boot:spring-boot-starter-web'
+### 1.2 依赖注入（DI）- IoC 的实现方式
+
+**DI = Dependency Injection（依赖注入）**
+
+**简单来说**：对象需要依赖（其他对象），Spring 自动"注入"进来。
+
+#### 1.2.1 什么是依赖？
+
+```java
+@RestController
+public class CustomerController {
+
+    private CustomerService customerService;  // CustomerController 依赖 CustomerService
+
+    @GetMapping("/customers")
+    public List<Customer> getAll() {
+        return customerService.findAll();  // 需要用 customerService
+    }
+}
 ```
+
+**问题**：`customerService` 是 `null`，怎么办？
+
+**传统方式**：自己创建
+```java
+private CustomerService customerService = new CustomerService();
+```
+
+**Spring 方式**：让 Spring 注入
+```java
+@Autowired  // 告诉 Spring：请把 CustomerService 的实例注入进来
+private CustomerService customerService;
+```
+
+#### 1.2.2 三种注入方式
+
+**方式1：字段注入**（最简单，推荐新手）
+```java
+@RestController
+public class CustomerController {
+
+    @Autowired
+    private CustomerService customerService;
+}
+```
+
+**方式2：构造器注入**（推荐，最佳实践）
+```java
+@RestController
+public class CustomerController {
+
+    private final CustomerService customerService;
+
+    // Spring 会自动调用这个构造器并注入依赖
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
+    }
+}
+```
+
+**方式3：Setter 注入**（不常用）
+```java
+@RestController
+public class CustomerController {
+
+    private CustomerService customerService;
+
+    @Autowired
+    public void setCustomerService(CustomerService customerService) {
+        this.customerService = customerService;
+    }
+}
+```
+
+**推荐使用构造器注入**，因为：
+- ✅ 对象不可变（用 `final` 修饰）
+- ✅ 必须注入才能创建对象（避免 NullPointerException）
+- ✅ 容易测试
 
 ### 1.3 核心概念速记
 
