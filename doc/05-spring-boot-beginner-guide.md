@@ -404,6 +404,20 @@ customerRepository.deleteById("CUST001");
 
 **好消息**：Spring Data JPA 自动把 Java 方法转换成 SQL！
 
+**疑问：如果有很复杂的业务 SQL 怎么办？**
+
+不用担心！Spring Boot 提供多种方案：
+1. **简单查询**：用 JPA 方法命名（如 `findByStatus`）
+2. **中等复杂**：用 `@Query` 注解写 JPQL 或 SQL
+3. **超级复杂**：用 MyBatis 或 JdbcTemplate
+
+大部分公司的实际做法：
+- 70% 简单 CRUD → JPA 方法命名
+- 20% 中等复杂 → `@Query` 注解
+- 10% 超级复杂 → MyBatis 或原生 SQL
+
+**详细内容在第四章 4.4 节会深入讲解！**
+
 ### 0.8 什么是框架？为什么需要 Spring Boot？
 
 #### 0.8.1 什么是框架？
@@ -1647,6 +1661,337 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
 
    - 使用 JPQL（类似 SQL，但是用实体类名和字段名）
    - `:creditLevel`：命名参数，对应方法参数 `String creditLevel`
+
+#### 4.4.1 处理复杂业务 SQL（重要！）
+
+在实际项目中，你会遇到很复杂的业务查询，JPA 方法命名根本搞不定。这时候有多种方案。
+
+##### 方案1：使用 `@Query` 注解（推荐，80% 场景适用）
+
+**场景1：中等复杂的 JPQL 查询**
+
+```java
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, String> {
+
+    // 简单查询：方法命名
+    List<Customer> findByStatus(String status);
+
+    // 中等复杂：@Query + JPQL（推荐）
+    @Query("SELECT c FROM Customer c " +
+           "WHERE c.creditLevel = :level " +
+           "AND c.createTime > :startDate " +
+           "ORDER BY c.createTime DESC")
+    List<Customer> findHighValueCustomers(
+        @Param("level") String level,
+        @Param("startDate") LocalDateTime startDate
+    );
+
+    // 联表查询（假设有关联关系）
+    @Query("SELECT c FROM Customer c " +
+           "JOIN c.bills b " +  // 假设 Customer 有 bills 关联
+           "WHERE b.billMonth = :month " +
+           "AND b.amount > :minAmount")
+    List<Customer> findCustomersWithHighBills(
+        @Param("month") String month,
+        @Param("minAmount") BigDecimal minAmount
+    );
+}
+```
+
+**JPQL 的优点**：
+- ✅ 面向对象，用实体类名和字段名
+- ✅ 数据库无关（换数据库不用改代码）
+- ✅ 类型安全
+
+**JPQL 的缺点**：
+- ❌ 不支持复杂的数据库特性（如 Oracle 的分析函数）
+- ❌ 语法有限制
+
+##### 方案2：使用原生 SQL（更灵活）
+
+**场景2：需要数据库特定功能**
+
+```java
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, String> {
+
+    // 使用原生 SQL（nativeQuery = true）
+    @Query(value = "SELECT * FROM TCBS.CUSTOMERS c " +
+                   "WHERE c.CREDIT_LEVEL = :level " +
+                   "AND EXISTS (SELECT 1 FROM TCBS.BILLS b " +
+                   "            WHERE b.CUSTOMER_ID = c.CUSTOMER_ID " +
+                   "            AND b.AMOUNT > :amount)",
+           nativeQuery = true)
+    List<Customer> findCustomersWithHighBills(
+        @Param("level") String level,
+        @Param("amount") BigDecimal amount
+    );
+
+    // 复杂统计查询（返回多个字段）
+    @Query(value = "SELECT c.CUSTOMER_TYPE, " +
+                   "       COUNT(*) as customer_count, " +
+                   "       AVG(b.AMOUNT) as avg_amount " +
+                   "FROM TCBS.CUSTOMERS c " +
+                   "LEFT JOIN TCBS.BILLS b ON c.CUSTOMER_ID = b.CUSTOMER_ID " +
+                   "GROUP BY c.CUSTOMER_TYPE",
+           nativeQuery = true)
+    List<Object[]> getCustomerStatistics();
+
+    // Oracle 特定功能：分析函数
+    @Query(value = "SELECT * FROM ( " +
+                   "  SELECT c.*, " +
+                   "         ROW_NUMBER() OVER (PARTITION BY c.CUSTOMER_TYPE ORDER BY b.AMOUNT DESC) as rn " +
+                   "  FROM TCBS.CUSTOMERS c " +
+                   "  JOIN TCBS.BILLS b ON c.CUSTOMER_ID = b.CUSTOMER_ID " +
+                   ") WHERE rn <= 10",
+           nativeQuery = true)
+    List<Customer> getTop10CustomersPerType();
+}
+```
+
+**原生 SQL 的优点**：
+- ✅ 可以写任意复杂的 SQL
+- ✅ 可以使用数据库特定功能（Oracle 分析函数、MySQL 特定语法等）
+- ✅ 性能可以极致优化
+
+**原生 SQL 的缺点**：
+- ❌ 数据库相关（换数据库可能要改）
+- ❌ 字段名要写数据库列名（大写）
+
+##### 方案3：MyBatis + JPA 混用（大型项目常见）
+
+很多公司的做法：**简单 CRUD 用 JPA，复杂查询用 MyBatis**
+
+**配置 MyBatis**（build.gradle）：
+```groovy
+dependencies {
+    // Spring Data JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // MyBatis
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+}
+```
+
+**JPA Repository**（简单 CRUD）：
+```java
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, String> {
+    List<Customer> findByStatus(String status);
+}
+```
+
+**MyBatis Mapper**（复杂查询）：
+```java
+@Mapper
+public interface CustomerMapper {
+
+    // 使用注解方式
+    @Select("SELECT c.*, COUNT(b.bill_id) as bill_count " +
+            "FROM TCBS.CUSTOMERS c " +
+            "LEFT JOIN TCBS.BILLS b ON c.customer_id = b.customer_id " +
+            "WHERE c.status = #{status} " +
+            "GROUP BY c.customer_id")
+    List<Map<String, Object>> getCustomerBillSummary(@Param("status") String status);
+
+    // 复杂查询用 XML（推荐）
+    List<Customer> complexQuery(Map<String, Object> params);
+}
+```
+
+**MyBatis XML 配置**（src/main/resources/mapper/CustomerMapper.xml）：
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.devops.course.mapper.CustomerMapper">
+
+    <!-- 复杂动态查询 -->
+    <select id="complexQuery" resultType="com.devops.course.entity.Customer">
+        SELECT
+            c.*,
+            COUNT(b.bill_id) as bill_count,
+            SUM(b.amount) as total_amount
+        FROM TCBS.CUSTOMERS c
+        LEFT JOIN TCBS.BILLS b ON c.customer_id = b.customer_id
+        WHERE 1=1
+
+        <!-- 动态条件：如果有 status 参数才加这个条件 -->
+        <if test="status != null">
+            AND c.status = #{status}
+        </if>
+
+        <!-- 动态条件：如果有 creditLevel 参数才加这个条件 -->
+        <if test="creditLevel != null">
+            AND c.credit_level = #{creditLevel}
+        </if>
+
+        <!-- 动态条件：如果有 startDate 参数才加这个条件 -->
+        <if test="startDate != null">
+            AND c.create_time >= #{startDate}
+        </if>
+
+        GROUP BY c.customer_id
+
+        <!-- 动态条件：如果有 minBillCount 参数才加这个条件 -->
+        <if test="minBillCount != null">
+            HAVING COUNT(b.bill_id) > #{minBillCount}
+        </if>
+
+        ORDER BY total_amount DESC
+    </select>
+
+</mapper>
+```
+
+**使用 MyBatis Mapper**：
+```java
+@Service
+public class CustomerService {
+
+    @Autowired
+    private CustomerRepository customerRepository;  // JPA
+
+    @Autowired
+    private CustomerMapper customerMapper;          // MyBatis
+
+    // 简单查询用 JPA
+    public List<Customer> findActiveCustomers() {
+        return customerRepository.findByStatus("ACTIVE");
+    }
+
+    // 复杂查询用 MyBatis
+    public List<Customer> complexSearch(String status, String creditLevel, Integer minBillCount) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("status", status);
+        params.put("creditLevel", creditLevel);
+        params.put("minBillCount", minBillCount);
+
+        return customerMapper.complexQuery(params);
+    }
+}
+```
+
+**MyBatis 的优点**：
+- ✅ XML 中写 SQL，可读性好
+- ✅ 动态 SQL 超级灵活（`<if>`, `<where>`, `<foreach>` 等）
+- ✅ 适合复杂报表和统计
+- ✅ 学习成本低（会 SQL 就会用）
+
+##### 方案4：JdbcTemplate（终极方案）
+
+如果连 MyBatis 都搞不定，可以用 JdbcTemplate 直接写 JDBC 代码：
+
+```java
+@Service
+public class CustomerService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // 复杂报表查询
+    public List<Map<String, Object>> getMonthlyReport(String month) {
+        String sql = "SELECT " +
+                     "    c.customer_type, " +
+                     "    COUNT(DISTINCT c.customer_id) as customer_count, " +
+                     "    COUNT(b.bill_id) as bill_count, " +
+                     "    SUM(b.amount) as total_amount, " +
+                     "    AVG(b.amount) as avg_amount " +
+                     "FROM TCBS.CUSTOMERS c " +
+                     "LEFT JOIN TCBS.BILLS b ON c.customer_id = b.customer_id " +
+                     "WHERE b.bill_month = ? " +
+                     "GROUP BY c.customer_type " +
+                     "ORDER BY total_amount DESC";
+
+        return jdbcTemplate.queryForList(sql, month);
+    }
+
+    // 批量操作
+    public void batchUpdateCustomerLevel() {
+        String sql = "UPDATE TCBS.CUSTOMERS " +
+                     "SET credit_level = " +
+                     "    CASE " +
+                     "        WHEN total_spent > 10000 THEN 'VIP' " +
+                     "        WHEN total_spent > 5000 THEN 'GOLD' " +
+                     "        ELSE 'NORMAL' " +
+                     "    END";
+
+        jdbcTemplate.update(sql);
+    }
+}
+```
+
+#### 4.4.2 实际开发建议（超级重要！）
+
+**根据复杂度选择方案**：
+
+| 场景 | 推荐方案 | 原因 | 示例 |
+|------|---------|------|------|
+| **简单 CRUD** | JPA 方法命名 | 最简单，0 SQL 代码 | `findByStatus` |
+| **单表查询，2-3 个条件** | JPA 方法命名 | 方法名就能表达清楚 | `findByStatusAndCreditLevel` |
+| **单表查询，复杂条件** | `@Query` + JPQL | 面向对象，数据库无关 | 多条件 + 排序 + 分页 |
+| **联表查询（2-3 张表）** | `@Query` + JPQL | 如果实体有关联关系 | `JOIN c.bills` |
+| **联表查询（没关联关系）** | `@Query(nativeQuery=true)` | 直接写 SQL | `JOIN ... ON ...` |
+| **统计报表** | MyBatis XML | 动态 SQL，可读性好 | 复杂分组统计 |
+| **数据库特定功能** | `@Query(nativeQuery=true)` | Oracle 分析函数等 | `ROW_NUMBER() OVER` |
+| **超复杂动态查询** | MyBatis XML | `<if>` 动态条件 | 10+ 个可选条件 |
+| **批量操作/性能优化** | JdbcTemplate | 最灵活，性能最好 | 批量更新 10 万条 |
+
+**真实项目的技术选型比例**：
+
+```
+大部分公司的实际做法：
+├── 60% JPA 方法命名         （简单 CRUD）
+├── 20% @Query 注解          （中等复杂）
+├── 15% MyBatis              （复杂业务查询）
+└── 5%  JdbcTemplate         （极端场景）
+```
+
+**混用示例（推荐实践）**：
+
+```java
+@Service
+public class CustomerService {
+
+    @Autowired
+    private CustomerRepository customerRepository;  // JPA
+
+    @Autowired
+    private CustomerMapper customerMapper;          // MyBatis
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;              // JDBC
+
+    // 场景1：简单 CRUD → JPA
+    public List<Customer> findActiveCustomers() {
+        return customerRepository.findByStatus("ACTIVE");
+    }
+
+    // 场景2：中等复杂 → @Query
+    public List<Customer> findRecentHighValueCustomers(String level, LocalDateTime date) {
+        return customerRepository.findHighValueCustomers(level, date);
+    }
+
+    // 场景3：复杂业务查询 → MyBatis
+    public List<Customer> complexSearch(Map<String, Object> params) {
+        return customerMapper.complexQuery(params);
+    }
+
+    // 场景4：性能优化/批量操作 → JdbcTemplate
+    public void batchUpdateLevels() {
+        String sql = "UPDATE TCBS.CUSTOMERS SET credit_level = ...";
+        jdbcTemplate.update(sql);
+    }
+}
+```
+
+**关键建议**：
+1. **从简单开始**：先用 JPA 方法命名，不够用再升级
+2. **不要过度设计**：别一上来就全用 MyBatis，大部分查询 JPA 就够了
+3. **性能优先**：统计报表、大数据量用原生 SQL 或 MyBatis
+4. **团队统一**：团队商量好技术选型，不要每个人一套
 
 ### 4.5 读懂 Entity（实体类）
 
