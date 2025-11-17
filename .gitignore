@@ -84,3 +84,15 @@ application-secret.yml
 # Test Coverage
 .jacoco/
 jacoco.exec
+
+# Claude Code
+.claude/
+
+# Docker
+docker/*/data/
+docker/*/logs/
+*.pid
+
+# CI/CD Secrets
+**/secrets/
+**/credentials/

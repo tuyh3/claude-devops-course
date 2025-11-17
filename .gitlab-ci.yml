@@ -1,0 +1,518 @@
+# .gitlab-ci.yml
+# GitLab CI/CD 配置文件
+# 适用于 GitLab 13.0+
+
+# ==================== 全局配置 ====================
+
+# Docker 镜像配置
+image: gradle:8.5-jdk21
+
+# 定义构建阶段
+stages:
+  - prepare      # 准备阶段
+  - build        # 编译构建
+  - test         # 测试
+  - quality      # 代码质量检查
+  - package      # 打包
+  - deploy       # 部署
+
+# 全局变量
+variables:
+  # Gradle 配置
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+  # Docker 配置
+  DOCKER_REGISTRY: "registry.example.com"
+  DOCKER_IMAGE_NAME: "$DOCKER_REGISTRY/$CI_PROJECT_NAME"
+  DOCKER_DRIVER: overlay2
+
+  # 应用配置
+  SPRING_PROFILES_ACTIVE: "test"
+
+  # Maven 中央仓库镜像（加速依赖下载）
+  GRADLE_MAVEN_MIRROR: "https://maven.aliyun.com/repository/public"
+
+# 缓存配置（加速构建）
+cache:
+  key:
+    files:
+      - build.gradle
+      - gradle/wrapper/gradle-wrapper.properties
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+    - build/
+
+# 全局 before_script（在每个 job 执行前运行）
+before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+  - chmod +x gradlew
+
+# ==================== 准备阶段 ====================
+
+# 检查代码格式
+check-format:
+  stage: prepare
+  script:
+    - echo "检查代码格式..."
+    - ./gradlew checkstyleMain checkstyleTest
+  allow_failure: true
+  only:
+    - merge_requests
+    - develop
+    - main
+  artifacts:
+    when: on_failure
+    reports:
+      codequality: build/reports/checkstyle/main.xml
+    paths:
+      - build/reports/checkstyle/
+    expire_in: 1 week
+
+# 依赖安全检查
+dependency-check:
+  stage: prepare
+  script:
+    - echo "检查依赖安全漏洞..."
+    - ./gradlew dependencyCheckAnalyze || true
+  allow_failure: true
+  only:
+    - schedules
+    - main
+  artifacts:
+    when: always
+    paths:
+      - build/reports/dependency-check-report.html
+    expire_in: 1 month
+
+# ==================== 编译构建阶段 ====================
+
+build:
+  stage: build
+  script:
+    - echo "========================================="
+    - echo "开始编译构建..."
+    - echo "分支: $CI_COMMIT_REF_NAME"
+    - echo "提交: $CI_COMMIT_SHORT_SHA"
+    - echo "========================================="
+    - ./gradlew clean build -x test --stacktrace --info
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 1 week
+  only:
+    - branches
+    - tags
+    - merge_requests
+
+# ==================== 测试阶段 ====================
+
+# 单元测试
+unit-test:
+  stage: test
+  script:
+    - echo "运行单元测试..."
+    - ./gradlew test --info
+  coverage: '/Total.*?([0-9]{1,3})%/'
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: build/reports/jacoco/test/cobertura.xml
+    paths:
+      - build/reports/tests/test/
+      - build/reports/jacoco/test/html/
+    expire_in: 1 week
+  only:
+    - branches
+    - tags
+    - merge_requests
+
+# 集成测试
+integration-test:
+  stage: test
+  services:
+    - name: postgres:16
+      alias: postgres
+    - name: redis:7.0
+      alias: redis
+  variables:
+    POSTGRES_DB: testdb
+    POSTGRES_USER: testuser
+    POSTGRES_PASSWORD: testpass
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/testdb"
+    SPRING_DATASOURCE_USERNAME: testuser
+    SPRING_DATASOURCE_PASSWORD: testpass
+    SPRING_REDIS_HOST: redis
+  script:
+    - echo "运行集成测试..."
+    - ./gradlew integrationTest || true
+  allow_failure: true
+  only:
+    - develop
+    - main
+  artifacts:
+    when: always
+    paths:
+      - build/reports/tests/integrationTest/
+    expire_in: 1 week
+
+# ==================== 代码质量检查阶段 ====================
+
+# SonarQube 分析
+sonarqube-check:
+  stage: quality
+  image: gradle:8.5-jdk21
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"  # 浅克隆会导致 SonarQube 分析不准确
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - echo "SonarQube 代码分析..."
+    - |
+      ./gradlew sonarqube \
+        -Dsonar.projectKey=$CI_PROJECT_NAME \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.login=$SONAR_TOKEN \
+        -Dsonar.branch.name=$CI_COMMIT_REF_NAME
+  allow_failure: true
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# 代码覆盖率检查
+coverage-check:
+  stage: quality
+  script:
+    - echo "生成代码覆盖率报告..."
+    - ./gradlew jacocoTestReport
+    - |
+      COVERAGE=$(grep -oP 'Total.*?>\K([0-9]+)' build/reports/jacoco/test/html/index.html | head -1)
+      echo "代码覆盖率: ${COVERAGE}%"
+      if [ "$COVERAGE" -lt 70 ]; then
+        echo "⚠️ 警告: 代码覆盖率低于 70%！"
+        exit 1
+      fi
+  coverage: '/代码覆盖率: ([0-9]+)%/'
+  artifacts:
+    paths:
+      - build/reports/jacoco/test/html/
+    expire_in: 1 month
+  allow_failure: true
+  only:
+    - develop
+    - main
+    - merge_requests
+
+# ==================== 打包阶段 ====================
+
+# 构建 Docker 镜像
+build-docker-image:
+  stage: package
+  image: docker:24-git
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "准备 Docker 构建环境..."
+    - docker info
+  script:
+    - echo "========================================="
+    - echo "构建 Docker 镜像..."
+    - echo "========================================="
+
+    # 确定镜像标签
+    - |
+      if [ "$CI_COMMIT_TAG" ]; then
+        # 如果是 tag，使用 tag 名称
+        IMAGE_TAG="$CI_COMMIT_TAG"
+      elif [ "$CI_COMMIT_REF_NAME" == "main" ]; then
+        # main 分支使用 latest
+        IMAGE_TAG="latest"
+      elif [ "$CI_COMMIT_REF_NAME" == "develop" ]; then
+        # develop 分支使用 dev-{commit_short_sha}
+        IMAGE_TAG="dev-$CI_COMMIT_SHORT_SHA"
+      else
+        # feature 分支使用 分支名-{commit_short_sha}
+        IMAGE_TAG="${CI_COMMIT_REF_NAME//\//-}-$CI_COMMIT_SHORT_SHA"
+      fi
+
+    - echo "镜像标签: $DOCKER_IMAGE_NAME:$IMAGE_TAG"
+
+    # 构建镜像
+    - |
+      docker build \
+        -t $DOCKER_IMAGE_NAME:$IMAGE_TAG \
+        -t $DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA \
+        --build-arg BUILD_NUMBER=$CI_PIPELINE_ID \
+        --build-arg GIT_COMMIT=$CI_COMMIT_SHA \
+        --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+        .
+
+    # 登录 Docker Registry
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $DOCKER_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+
+    # 推送镜像
+    - docker push $DOCKER_IMAGE_NAME:$IMAGE_TAG
+    - docker push $DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+
+    # 如果是 main 分支，同时打 latest 标签
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
+        docker tag $DOCKER_IMAGE_NAME:$IMAGE_TAG $DOCKER_IMAGE_NAME:latest
+        docker push $DOCKER_IMAGE_NAME:latest
+      fi
+
+    - docker logout $DOCKER_REGISTRY
+
+  only:
+    - main
+    - develop
+    - tags
+
+# ==================== 部署阶段 ====================
+
+# 部署到开发环境
+deploy:dev:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $DEV_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "========================================="
+    - echo "部署到开发环境..."
+    - echo "目标服务器: $DEV_SERVER"
+    - echo "========================================="
+
+    - |
+      ssh deployer@$DEV_SERVER << 'EOF'
+        cd /opt/app
+        docker-compose pull
+        docker-compose up -d
+        docker-compose ps
+        docker image prune -f
+      EOF
+
+    # 健康检查
+    - sleep 10
+    - curl -f http://$DEV_SERVER:8080/actuator/health || exit 1
+
+    - echo "✅ 部署成功！"
+
+  environment:
+    name: development
+    url: http://$DEV_SERVER:8080
+    on_stop: stop:dev
+
+  only:
+    - develop
+
+# 停止开发环境
+stop:dev:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  script:
+    - ssh deployer@$DEV_SERVER "cd /opt/app && docker-compose down"
+  environment:
+    name: development
+    action: stop
+  when: manual
+  only:
+    - develop
+
+# 部署到测试环境
+deploy:test:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $TEST_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "========================================="
+    - echo "部署到测试环境..."
+    - echo "目标服务器: $TEST_SERVER"
+    - echo "========================================="
+
+    - |
+      ssh deployer@$TEST_SERVER << 'EOF'
+        cd /opt/app
+        docker-compose pull
+        docker-compose up -d
+        docker-compose ps
+        docker image prune -f
+      EOF
+
+    - sleep 10
+    - curl -f http://$TEST_SERVER:8080/actuator/health || exit 1
+
+    - echo "✅ 部署成功！"
+
+  environment:
+    name: testing
+    url: http://$TEST_SERVER:8080
+
+  only:
+    - develop
+    - main
+
+  when: manual
+
+# 部署到生产环境
+deploy:prod:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $PROD_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "========================================="
+    - echo "⚠️  部署到生产环境！！！"
+    - echo "目标服务器: $PROD_SERVER"
+    - echo "镜像标签: $CI_COMMIT_TAG"
+    - echo "========================================="
+
+    # 备份当前版本
+    - |
+      ssh deployer@$PROD_SERVER << 'EOF'
+        cd /opt/app
+        docker-compose ps > backup/compose-state-$(date +%Y%m%d-%H%M%S).txt
+      EOF
+
+    # 部署新版本
+    - |
+      ssh deployer@$PROD_SERVER << EOF
+        cd /opt/app
+        export IMAGE_TAG=$CI_COMMIT_TAG
+        docker-compose pull
+        docker-compose up -d
+        docker-compose ps
+      EOF
+
+    # 健康检查
+    - sleep 15
+    - |
+      for i in {1..10}; do
+        if curl -f http://$PROD_SERVER:8080/actuator/health; then
+          echo "✅ 健康检查通过"
+          break
+        fi
+        echo "等待应用启动... ($i/10)"
+        sleep 5
+      done
+
+    - echo "✅ 生产环境部署成功！"
+
+  environment:
+    name: production
+    url: https://www.example.com
+
+  only:
+    - tags  # 只有打 tag 才能部署到生产环境
+
+  when: manual  # 必须手动触发
+
+# ==================== 工具任务 ====================
+
+# 数据库迁移（手动触发）
+db-migrate:
+  stage: deploy
+  script:
+    - echo "执行数据库迁移..."
+    - ./gradlew flywayMigrate -Dflyway.url=$DB_URL -Dflyway.user=$DB_USER -Dflyway.password=$DB_PASSWORD
+  when: manual
+  only:
+    - main
+
+# 回滚部署（手动触发）
+rollback:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  script:
+    - echo "========================================="
+    - echo "⚠️  回滚部署！"
+    - echo "========================================="
+
+    # 回滚到上一个版本
+    - |
+      ssh deployer@$PROD_SERVER << 'EOF'
+        cd /opt/app
+        docker-compose down
+        # 这里需要根据实际情况实现回滚逻辑
+        # 例如：从备份恢复、切换到上一个镜像版本等
+        echo "回滚完成"
+      EOF
+
+  when: manual
+  only:
+    - tags
+
+# ==================== 通知 ====================
+
+# 构建成功通知
+notify-success:
+  stage: .post
+  image: curlimages/curl:latest
+  script:
+    - |
+      curl -X POST $WEBHOOK_URL \
+        -H 'Content-Type: application/json' \
+        -d "{
+          \"msgtype\": \"markdown\",
+          \"markdown\": {
+            \"title\": \"✅ GitLab CI/CD 构建成功\",
+            \"text\": \"### ✅ 构建成功\n\n**项目:** $CI_PROJECT_NAME\n\n**分支:** $CI_COMMIT_REF_NAME\n\n**提交:** $CI_COMMIT_SHORT_SHA\n\n**流水线:** [$CI_PIPELINE_ID]($CI_PIPELINE_URL)\"
+          }
+        }"
+  when: on_success
+  only:
+    - main
+    - develop
+
+# 构建失败通知
+notify-failure:
+  stage: .post
+  image: curlimages/curl:latest
+  script:
+    - |
+      curl -X POST $WEBHOOK_URL \
+        -H 'Content-Type: application/json' \
+        -d "{
+          \"msgtype\": \"markdown\",
+          \"markdown\": {
+            \"title\": \"❌ GitLab CI/CD 构建失败\",
+            \"text\": \"### ❌ 构建失败\n\n**项目:** $CI_PROJECT_NAME\n\n**分支:** $CI_COMMIT_REF_NAME\n\n**提交:** $CI_COMMIT_SHORT_SHA\n\n**流水线:** [$CI_PIPELINE_ID]($CI_PIPELINE_URL)\n\n请及时处理！\"
+          }
+        }"
+  when: on_failure
+  only:
+    - main
+    - develop

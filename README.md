@@ -89,6 +89,61 @@ vim src/main/resources/application-local.yml
 - API端点：http://localhost:8080/api/hello
 - 健康检查：http://localhost:8080/api/health
 
+## 🚀 CI/CD 与 Docker 部署
+
+### Docker 快速部署
+
+```bash
+# 1. 创建环境变量文件
+cp .env.example .env
+# 编辑 .env 文件，配置数据库等信息
+
+# 2. 使用 Docker Compose 启动所有服务
+docker-compose up -d
+
+# 3. 查看服务状态
+docker-compose ps
+
+# 4. 查看应用日志
+docker-compose logs -f app
+
+# 5. 访问应用
+curl http://localhost:8080/actuator/health
+```
+
+### CI/CD 支持
+
+本项目包含完整的企业级 CI/CD 配置：
+
+**Jenkins Pipeline**：
+- 完整的 `Jenkinsfile` 配置
+- 支持自动化构建、测试、部署
+- 支持多环境部署（dev/test/prod）
+- 集成代码质量检查和测试覆盖率报告
+
+**GitLab CI/CD**：
+- 完整的 `.gitlab-ci.yml` 配置
+- 自动触发构建和部署
+- Docker 镜像自动构建和推送
+- 蓝绿部署支持
+
+**配置文档**：
+- **[CI/CD 配置指南](doc/cicd-setup-guide.md)** - 详细的 Jenkins 和 GitLab CI/CD 配置步骤
+
+**CI/CD 流程**：
+```
+代码提交 → 自动触发 CI/CD
+  ↓
+  ├─ 编译构建
+  ├─ 单元测试
+  ├─ 代码质量检查（SonarQube）
+  ├─ 构建 Docker 镜像
+  ├─ 推送到镜像仓库
+  └─ 自动部署到目标环境
+  ↓
+健康检查 → 部署成功通知
+```
+
 ## 🛠️ 技术栈
 
 ### 当前使用版本
