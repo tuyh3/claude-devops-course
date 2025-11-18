@@ -2758,28 +2758,40 @@ curl http://localhost:8080/api/customers/CUST001
 | **F9** | Resume（继续执行到下一个断点） |
 | **Ctrl + F8** | 添加/移除断点 |
 
-### 6.2 查看日志
+### 6.2 使用日志（重要！）
 
-Spring Boot 默认使用 Logback 记录日志。
+> 🔑 **为什么日志很重要？**
+> - 生产环境不能用断点调试
+> - 日志是排查问题的主要手段
+> - 好的日志能让你快速定位问题
 
-**日志级别**：
-- `TRACE`：最详细
-- `DEBUG`：调试信息
-- `INFO`：一般信息 ⭐ 默认级别
-- `WARN`：警告
-- `ERROR`：错误
+#### 6.2.1 日志基础概念
 
-**配置日志级别**（`application.yml`）：
-```yaml
-logging:
-  level:
-    root: INFO
-    com.devops.course: DEBUG  # 设置项目包的日志级别为 DEBUG
-    org.springframework.web: DEBUG  # 查看 Spring Web 的详细日志
-    org.hibernate.SQL: DEBUG  # 查看 SQL 语句
+**日志级别**（从详细到简略）：
+
+| 级别 | 用途 | 示例 |
+|------|------|------|
+| `TRACE` | 最详细的追踪信息 | 很少使用 |
+| `DEBUG` | 调试信息 | 方法入参、中间状态 |
+| `INFO` | 重要业务信息 ⭐ | 请求处理、操作结果 |
+| `WARN` | 警告信息 | 数据不存在、非预期情况 |
+| `ERROR` | 错误信息 | 异常、操作失败 |
+
+**级别规则**：设置某个级别后，只会输出该级别及以上的日志。
+
+```
+设置 INFO 级别：
+  TRACE ❌ 不输出
+  DEBUG ❌ 不输出
+  INFO  ✅ 输出
+  WARN  ✅ 输出
+  ERROR ✅ 输出
 ```
 
-**在代码中使用日志**：
+#### 6.2.2 在代码中使用日志
+
+**第一步：添加 Logger**
+
 ```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2787,28 +2799,205 @@ import org.slf4j.LoggerFactory;
 @Service
 public class CustomerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CustomerService.class);
+    // 1. 在类中定义 Logger（固定写法）
+    private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
 
-    public Optional<Customer> findCustomerById(String customerId) {
-        logger.debug("查询客户，ID: {}", customerId);  // DEBUG 级别日志
+    // 2. 在方法中使用
+    public List<Customer> findAllCustomers() {
+        log.debug("查询所有客户");  // DEBUG 级别
 
-        Optional<Customer> customer = customerRepository.findById(customerId);
+        List<Customer> customers = customerRepository.findAll();
 
-        if (customer.isPresent()) {
-            logger.info("找到客户: {}", customer.get().getCustomerName());
-        } else {
-            logger.warn("客户不存在，ID: {}", customerId);
-        }
-
-        return customer;
+        log.info("查询到 {} 个客户", customers.size());  // INFO 级别
+        return customers;
     }
 }
 ```
 
-**查看日志输出**：
+**第二步：根据场景选择日志级别**
+
+```java
+public Optional<Customer> findCustomerById(String customerId) {
+    // DEBUG：记录方法入参
+    log.debug("根据ID查询客户: {}", customerId);
+
+    Optional<Customer> customer = customerRepository.findById(customerId);
+
+    if (customer.isPresent()) {
+        // INFO：正常业务结果
+        log.info("找到客户: {}", customerId);
+    } else {
+        // WARN：非预期但不是错误
+        log.warn("未找到客户: {}", customerId);
+    }
+
+    return customer;
+}
+
+@Transactional
+public Customer saveCustomer(Customer customer) {
+    log.debug("保存客户: {}", customer.getCustomerId());
+
+    try {
+        Customer saved = customerRepository.save(customer);
+        // INFO：重要操作成功
+        log.info("客户保存成功: {}", saved.getCustomerId());
+        return saved;
+    } catch (Exception e) {
+        // ERROR：操作失败
+        log.error("客户保存失败: {}, 错误: {}", customer.getCustomerId(), e.getMessage());
+        throw e;
+    }
+}
 ```
-2025-11-14 10:30:15.123  DEBUG 12345 --- [nio-8080-exec-1] c.d.course.service.CustomerService : 查询客户，ID: CUST001
-2025-11-14 10:30:15.456  INFO  12345 --- [nio-8080-exec-1] c.d.course.service.CustomerService : 找到客户: 张三
+
+**第三步：在 Controller 中记录请求**
+
+```java
+@RestController
+@RequestMapping("/api/customers")
+public class CustomerController {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
+
+    @GetMapping("/{customerId}")
+    public ResponseEntity<Customer> getCustomerById(@PathVariable String customerId) {
+        // 记录收到的请求
+        log.info("收到请求: GET /api/customers/{}", customerId);
+
+        return customerService.findCustomerById(customerId)
+                .map(customer -> {
+                    log.info("返回客户: {}", customerId);
+                    return ResponseEntity.ok(customer);
+                })
+                .orElseGet(() -> {
+                    log.warn("客户不存在: {}", customerId);
+                    return ResponseEntity.notFound().build();
+                });
+    }
+
+    @PostMapping
+    public ResponseEntity<Customer> createCustomer(@RequestBody Customer customer) {
+        log.info("收到请求: POST /api/customers, 客户ID: {}", customer.getCustomerId());
+        Customer saved = customerService.saveCustomer(customer);
+        log.info("客户创建成功: {}", saved.getCustomerId());
+        return ResponseEntity.ok(saved);
+    }
+}
+```
+
+#### 6.2.3 日志配置
+
+**方式一：application.yml 简单配置**
+
+```yaml
+logging:
+  level:
+    root: INFO
+    com.devops.course: DEBUG  # 项目代码 DEBUG 级别
+    org.hibernate.SQL: DEBUG  # 查看 SQL 语句
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+```
+
+**方式二：logback-spring.xml 高级配置**
+
+项目已配置 `src/main/resources/logback-spring.xml`，支持：
+
+```xml
+<!-- 功能特性 -->
+- 控制台输出（开发时查看）
+- 文件滚动（按天生成日志文件）
+- 错误日志分离（error 单独文件）
+- 多环境配置（dev/test/prod 不同级别）
+- 异步写入（提高性能）
+```
+
+**日志文件位置**：
+```
+logs/
+├── claude-devops-course.log        # 全部日志
+└── claude-devops-course-error.log  # 错误日志
+```
+
+#### 6.2.4 查看日志输出
+
+**启动应用后的日志示例**：
+
+```
+2025-11-18 10:30:15.123 [http-nio-8080-exec-1] INFO  c.d.c.controller.CustomerController - 收到请求: GET /api/customers
+2025-11-18 10:30:15.124 [http-nio-8080-exec-1] DEBUG c.d.c.service.CustomerService - 查询所有客户
+2025-11-18 10:30:15.456 [http-nio-8080-exec-1] INFO  c.d.c.service.CustomerService - 查询到 10 个客户
+2025-11-18 10:30:15.457 [http-nio-8080-exec-1] INFO  c.d.c.controller.CustomerController - 返回 10 个客户
+```
+
+**日志格式解读**：
+```
+2025-11-18 10:30:15.123 [http-nio-8080-exec-1] INFO  c.d.c.service.CustomerService - 查询到 10 个客户
+│                       │                      │     │                             │
+│                       │                      │     │                             └─ 日志内容
+│                       │                      │     └─ 类名（缩写）
+│                       │                      └─ 日志级别
+│                       └─ 线程名
+└─ 时间戳
+```
+
+#### 6.2.5 日志最佳实践
+
+**✅ 推荐做法**：
+
+```java
+// 1. 使用占位符 {}，不要字符串拼接
+log.info("查询客户: {}", customerId);  // ✅ 好
+log.info("查询客户: " + customerId);   // ❌ 差（性能低）
+
+// 2. 异常要记录完整堆栈
+try {
+    // ...
+} catch (Exception e) {
+    log.error("操作失败: {}", e.getMessage(), e);  // ✅ 第三个参数传异常对象
+}
+
+// 3. 敏感信息要脱敏
+log.info("用户手机: {}", maskPhone(phone));  // ✅ 脱敏后：138****8888
+
+// 4. 日志要有意义
+log.info("客户 {} 从 {} 修改为 {}", customerId, oldStatus, newStatus);  // ✅ 有前后对比
+log.info("处理完成");  // ❌ 信息太少
+```
+
+**❌ 避免的做法**：
+
+```java
+// 1. 不要在循环中打印大量日志
+for (Customer c : customers) {
+    log.info("处理客户: {}", c.getId());  // ❌ 可能产生大量日志
+}
+// ✅ 改为：
+log.info("开始处理 {} 个客户", customers.size());
+
+// 2. 不要打印敏感信息
+log.info("用户密码: {}", password);  // ❌ 绝对禁止！
+
+// 3. 不要只打印 "error" 或 "success"
+log.error("error");  // ❌ 没有任何有用信息
+```
+
+#### 6.2.6 不同环境的日志策略
+
+| 环境 | 级别 | 输出位置 | 说明 |
+|------|------|---------|------|
+| **开发（dev）** | DEBUG | 控制台 | 详细信息，方便调试 |
+| **测试（test）** | DEBUG | 控制台 + 文件 | 保留日志，便于问题追踪 |
+| **生产（prod）** | INFO | 文件 | 只记录重要信息，减少磁盘占用 |
+
+**切换环境**：
+```bash
+# 开发环境
+./gradlew bootRun
+
+# 生产环境
+java -jar app.jar --spring.profiles.active=prod
 ```
 
 ### 6.3 理解错误信息
