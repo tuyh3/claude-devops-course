@@ -1277,7 +1277,7 @@ CREATE TABLE TCBS.PRODUCTS (
 
 ---
 
-### 4.4 版本发布
+### 4.4 版本发布与 Patch 管理
 
 #### 语义化版本（Semantic Versioning）
 
@@ -1297,6 +1297,365 @@ v1.0.1 → v1.1.0  添加新功能
 v1.1.0 → v2.0.0  不兼容的重大变更
 ```
 
+---
+
+#### Patch 列表管理
+
+##### 什么是 Patch 列表
+
+**Patch**（补丁）是对代码的一次变更记录，用于：
+- 📝 记录每个开发者的所有变更
+- 🔍 追踪功能和 Bug 修复
+- 📊 统一发布时汇总所有变更
+- 🎯 提供完整的发布说明
+
+**与 Git Commit 的区别**：
+```
+Git Commit（技术视角）：
+  - 代码级别的变更
+  - 关注"改了什么代码"
+  - 自动生成，数量多
+
+Patch 记录（业务视角）：
+  - 功能级别的变更
+  - 关注"解决什么问题"
+  - 手动填写，数量少
+  - 包含测试、影响范围、回滚方案等
+```
+
+**示例**：
+```
+一个"导出 CSV 功能"可能包含 10 个 Git commits：
+  - feat: 添加 CSV Service
+  - feat: 添加 CSV Controller
+  - test: 添加测试用例
+  - fix: 修复中文乱码
+  ...
+
+但只需要 1 个 Patch 记录：
+  - PATCH-2025-001: 客户列表导出 CSV 功能
+```
+
+---
+
+##### Patch 提交流程（开发者视角）
+
+**完整流程**：
+```
+1. 【开始开发】创建 feature 分支
+   git checkout -b feature/export-csv
+
+2. 【编写代码】正常开发，多次 commit
+   git commit -m "feat: 添加导出功能"
+   git commit -m "test: 添加测试"
+
+3. 【填写 Patch】复制 Patch 模板
+   cp docs/templates/PATCH_TEMPLATE.md patches/2025/PATCH-2025-XXX-export-csv.md
+
+4. 【完善 Patch】填写所有必填项 ⭐
+   - 基本信息（ID、版本、提交人、类型、优先级）
+   - 变更描述（功能说明、技术方案）
+   - 影响范围（修改的文件、数据库变更、配置变更）
+   - 测试情况（单元测试、集成测试、测试覆盖率）
+   - 回滚方案
+
+5. 【提交 Patch】将 Patch 文件提交到 Git
+   git add patches/2025/PATCH-2025-XXX-export-csv.md
+   git commit -m "docs: 添加导出功能 Patch 记录"
+
+6. 【推送代码】推送 feature 分支和 Patch
+   git push origin feature/export-csv
+
+7. 【创建 MR】创建 Merge Request
+   - 在 MR 描述中引用 Patch ID
+   - 例如："本 MR 对应 Patch: PATCH-2025-XXX"
+
+8. 【Code Review】Review 通过后合并
+```
+
+**Patch ID 命名规范**：
+```
+格式：PATCH-YYYY-NNN
+
+示例：
+  PATCH-2025-001  # 2025年第1个 Patch
+  PATCH-2025-002  # 2025年第2个 Patch
+  PATCH-2025-015  # 2025年第15个 Patch
+```
+
+**文件命名规范**：
+```
+格式：PATCH-YYYY-NNN-简短描述.md
+
+示例：
+  PATCH-2025-001-customer-export.md
+  PATCH-2025-002-phone-masking.md
+  PATCH-2025-003-fix-login-bug.md
+```
+
+---
+
+##### Patch 记录必填项
+
+从模板中重点关注以下必填项（标记 ⭐ 的项）：
+
+```markdown
+## 基本信息 ⭐
+- Patch ID: PATCH-2025-XXX
+- 版本: v1.2.0
+- 提交人: 张三
+- 提交日期: 2025-01-15
+- 类型: [x] 新功能  [ ] Bug修复  [ ] 性能优化  [ ] 重构
+- 优先级: [x] P1-高  [ ] P2-中  [ ] P3-低
+- 关联需求/Bug: REQ-2025-0123
+
+## 变更描述 ⭐
+### 功能说明
+用 1-3 句话描述这个变更做了什么
+
+### 技术方案
+1. 如何实现的（简要说明）
+2. 用了什么技术
+3. 关键技术点
+
+## 影响范围 ⭐
+### 修改的文件
+- 新增文件：xxx
+- 修改文件：yyy（+50 -10）
+- 删除文件：无
+
+### 数据库变更
+- [ ] 无数据库变更
+- [ ] 有数据库变更（需要提供脚本）
+
+## 测试情况 ⭐
+- [x] 新增测试用例
+- [x] 测试覆盖率 ≥ 80%
+- [x] 所有测试通过
+
+## 回滚方案 ⭐
+1. 如何回滚到上一版本
+2. 数据库如何回滚（如有变更）
+3. 预计回滚时间
+```
+
+**填写示例参考**：`patches/2025/PATCH-2025-001-customer-export.md`
+
+---
+
+##### 发布前 Patch 汇总（发布经理）
+
+**步骤1：收集所有 Patch**
+```bash
+# 查看本次发布包含的所有 Patch
+ls -l patches/2025/PATCH-*.md
+
+# 检查是否有未完成的 Patch（必填项未填）
+grep -r "⭐.*TODO" patches/2025/
+```
+
+**步骤2：自动生成汇总列表**
+```bash
+# 使用脚本生成 Patch 汇总
+./scripts/generate-patch-list.sh v1.2.0
+
+# 输出文件：releases/v1.2.0/PATCH-LIST-SUMMARY.md
+# 包含：
+#   - 统计信息（总数、按类型、按优先级）
+#   - 详细列表（表格形式）
+#   - 贡献者列表
+```
+
+**步骤3：审查 Patch 质量**
+```
+检查项：
+- ✅ 所有 Patch 必填项已填写
+- ✅ 测试覆盖率都 ≥ 80%
+- ✅ 有数据库变更的都提供了脚本
+- ✅ 所有 Patch 都有回滚方案
+- ✅ P0/P1 的 Patch 已经过技术负责人审批
+```
+
+**步骤4：生成发布说明**
+```bash
+# 基于 Patch 列表生成 Release Notes
+cat releases/v1.2.0/PATCH-LIST-SUMMARY.md > releases/v1.2.0/RELEASE_NOTES.md
+
+# 手动补充：
+# - 发布时间
+# - 发布负责人
+# - 重要变更说明
+# - 升级注意事项
+```
+
+---
+
+##### 实战案例：完整的 Patch 提交流程
+
+**背景**：
+- 开发者：张三
+- 需求：客户列表导出 CSV 功能
+- 计划版本：v1.2.0
+
+**Day 1-3：开发代码**
+```bash
+# 创建 feature 分支
+git checkout develop
+git pull origin develop
+git checkout -b feature/export-csv
+
+# 开发代码（多次提交）
+git commit -m "feat: 添加 CSV 导出 Service"
+git commit -m "feat: 添加 CSV 导出 Controller"
+git commit -m "test: 添加单元测试"
+git commit -m "fix: 修复中文乱码问题"
+```
+
+**Day 4：填写 Patch 记录**
+```bash
+# 1. 复制模板
+cp docs/templates/PATCH_TEMPLATE.md patches/2025/PATCH-2025-001-customer-export.md
+
+# 2. 编辑 Patch 文件
+vim patches/2025/PATCH-2025-001-customer-export.md
+
+# 填写内容：
+# - Patch ID: PATCH-2025-001
+# - 版本: v1.2.0
+# - 提交人: 张三
+# - 类型: [x] 新功能
+# - 优先级: [x] P1-高
+# - 功能说明：客户列表支持按信用等级批量导出 CSV...
+# - 技术方案：使用 OpenCSV 库生成 CSV...
+# - 修改的文件：CustomerService.java (+85 -0), CustomerController.java (+65 -0)
+# - 测试覆盖率：87%
+# - 回滚方案：回滚到 v1.1.0，无需数据回滚
+
+# 3. 提交 Patch 文件
+git add patches/2025/PATCH-2025-001-customer-export.md
+git commit -m "docs: 添加客户导出功能 Patch 记录 PATCH-2025-001"
+```
+
+**Day 5：提交 MR**
+```bash
+# 推送分支
+git push origin feature/export-csv
+
+# 在 GitLab 创建 Merge Request
+# 标题：feat: 客户列表导出 CSV 功能
+# 描述：
+#   对应 Patch: PATCH-2025-001
+#   详细信息见：patches/2025/PATCH-2025-001-customer-export.md
+#
+#   主要变更：
+#   - 添加 CSV 导出功能
+#   - 支持自定义导出字段
+#   - 处理中文乱码问题
+```
+
+**Day 6-7：Review 和修改**
+```bash
+# Reviewer 提出意见
+# 张三修改代码后，同步更新 Patch 记录
+
+vim patches/2025/PATCH-2025-001-customer-export.md
+# 更新"测试情况"部分，补充新的测试用例
+
+git add patches/2025/PATCH-2025-001-customer-export.md
+git commit -m "docs: 更新 Patch 记录，补充测试信息"
+git push origin feature/export-csv
+```
+
+**Week 2：合并到 develop**
+```bash
+# Review 通过，合并到 develop
+# Patch 文件也一起合并到 develop
+```
+
+**Week 3：发布前汇总**
+```bash
+# 发布经理运行脚本
+./scripts/generate-patch-list.sh v1.2.0
+
+# 生成汇总报告：
+# releases/v1.2.0/PATCH-LIST-SUMMARY.md
+#
+# 📊 统计信息
+# - 总 Patch 数: 5
+# - 新功能: 3
+# - Bug 修复: 2
+# - P1: 2, P2: 3
+# - 贡献者: 张三, 李四, 王五
+#
+# 📋 Patch 详细列表
+# | Patch ID | 版本 | 类型 | 优先级 | 提交人 | 日期 | 描述 |
+# | PATCH-2025-001 | v1.2.0 | 新功能 | P1 | 张三 | 2025-01-15 | 客户列表导出 CSV |
+# ...
+```
+
+**Week 3：发布**
+```bash
+# 参考完整的发布检查清单
+# docs/templates/RELEASE_CHECKLIST.md
+
+# 发布完成后，归档 Patch 列表
+mv releases/v1.2.0 releases/archive/
+```
+
+---
+
+##### 工具和模板
+
+项目提供以下工具和模板帮助你管理 Patch：
+
+**1. Patch 模板**：
+```
+docs/templates/PATCH_TEMPLATE.md
+  - 完整的 Patch 记录模板
+  - 包含所有必填项和可选项
+  - 有详细的填写说明
+```
+
+**2. 示例 Patch**：
+```
+patches/2025/PATCH-2025-001-customer-export.md
+  - 完整的填写示例
+  - 展示如何填写每个部分
+  - 可作为参考
+```
+
+**3. 自动化脚本**：
+```bash
+# Patch 列表生成工具
+./scripts/generate-patch-list.sh v1.2.0
+
+# 功能：
+#   - 自动扫描 patches/ 目录
+#   - 提取关键信息
+#   - 生成汇总报告
+#   - 统计 Patch 数量、类型、优先级、贡献者
+```
+
+**4. 发布检查清单**：
+```
+docs/templates/RELEASE_CHECKLIST.md
+  - 7 个部分的完整检查清单
+  - 从发布准备到发布后观察
+  - 包含 Patch 汇总步骤
+```
+
+**5. 完整发布管理指南**：
+```
+doc/release-management-guide.md
+  - 详细的发布流程
+  - Patch 管理最佳实践
+  - 发布前准备
+  - 发布执行步骤
+  - 回滚流程
+```
+
+---
+
 #### 发布检查清单
 
 ```markdown
@@ -1307,6 +1666,13 @@ v1.1.0 → v2.0.0  不兼容的重大变更
 - [ ] 代码覆盖率 > 80%
 - [ ] Code Review 完成
 - [ ] 没有已知的 P0/P1 Bug
+
+### Patch 管理 ⭐
+- [ ] 所有开发者已提交 Patch 记录
+- [ ] 所有 Patch 必填项已完成
+- [ ] 已运行 generate-patch-list.sh 生成汇总
+- [ ] Patch 列表已通过审查
+- [ ] 已生成 Release Notes
 
 ### 文档
 - [ ] 更新 CHANGELOG.md
@@ -1331,6 +1697,23 @@ v1.1.0 → v2.0.0  不兼容的重大变更
 - [ ] 配置告警规则
 - [ ] 准备值班人员
 ```
+
+**详细的发布检查清单**：参考 `docs/templates/RELEASE_CHECKLIST.md`
+
+---
+
+#### 参考文档
+
+**详细指南**：
+- 📖 [发布管理完整指南](release-management-guide.md) - 包含完整的 Patch 管理流程、发布流程、最佳实践
+
+**模板和工具**：
+- 📝 [Patch 记录模板](../docs/templates/PATCH_TEMPLATE.md) - 用于填写 Patch
+- 📋 [发布检查清单](../docs/templates/RELEASE_CHECKLIST.md) - 发布日使用
+- 🛠️ [Patch 列表生成脚本](../scripts/generate-patch-list.sh) - 自动汇总 Patch
+
+**示例**：
+- 💡 [Patch 填写示例](../patches/2025/PATCH-2025-001-customer-export.md) - 完整的示例参考
 
 ---
 
