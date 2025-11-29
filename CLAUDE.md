@@ -61,6 +61,13 @@ The project uses the following key dependencies (configured in build.gradle):
 - `com.oracle.database.jdbc:ojdbc11:23.6.0.24.10` - Oracle JDBC driver for Java 11+
 - `com.oracle.database.jdbc:ucp:23.6.0.24.10` - Universal Connection Pool
 
+### Logging and Monitoring Dependencies
+
+- `net.logstash.logback:logstash-logback-encoder:8.0` - Logback encoder for sending logs to Logstash/ELK Stack
+  - Configured in `src/main/resources/logback-spring.xml`
+  - Sends logs to Logstash via TCP (default port 5000)
+  - See [doc/09-elk-beginner-guide.md](doc/09-elk-beginner-guide.md) for ELK setup
+
 ## Build Commands
 
 ### Essential Commands
@@ -125,7 +132,17 @@ claude-devops-course/
 │   ├── 01-gradle-springboot-...guide.md    # Gradle quick start (for Maven users)
 │   ├── 02-intellij-idea-...setup.md        # IDEA configuration guide
 │   ├── 03-spring-boot-oracle-...md         # Oracle RAC integration guide
+│   ├── 09-elk-beginner-guide.md            # ELK Stack zero-knowledge guide
 │   └── oracle_dbpv_create_data.sql         # Database creation scripts
+├── elk/                                # 🔍 ELK Stack deployment
+│   ├── docker-compose.yml              # ELK Stack services (ES + Logstash + Kibana)
+│   ├── logstash/
+│   │   ├── config/logstash.yml         # Logstash configuration
+│   │   └── pipeline/logstash.conf      # Log processing rules
+│   ├── kibana/
+│   │   └── config/kibana.yml           # Kibana configuration
+│   └── scripts/
+│       └── init-kibana.sh              # Kibana initialization script
 ├── src/main/java/com/devops/course/
 │   ├── Main.java                       # Application entry point
 │   ├── controller/                     # REST API controllers
@@ -139,7 +156,8 @@ claude-devops-course/
 │       └── Customer.java               # Customer entity (TCBS.CUSTOMERS table)
 ├── src/main/resources/
 │   ├── application.yml                 # Main configuration (with placeholders)
-│   └── application.yml.example         # Configuration template for users
+│   ├── application.yml.example         # Configuration template for users
+│   └── logback-spring.xml              # Logging configuration (Logstash integration)
 ├── src/test/java/com/devops/course/    # Test code
 ├── build.gradle                        # Build configuration
 ├── settings.gradle                     # Project settings
@@ -381,9 +399,25 @@ chmod +x gradlew
 
 For detailed guides, refer to the `doc/` directory:
 
+### 📚 入门指南
 1. **[Gradle Quick Start](doc/01-gradle-springboot-project-initialization-guide.md)** - For Maven users transitioning to Gradle
 2. **[IDEA Configuration](doc/02-intellij-idea-gradle-project-setup.md)** - Complete IDEA setup guide
 3. **[Oracle Integration](doc/03-spring-boot-oracle-rac-integration.md)** - Oracle RAC database integration
+4. **[Project Configuration Guide](doc/04-project-configuration-guide.md)** - Complete configuration guide for new developers
+5. **[Spring Boot Beginner Guide](doc/05-spring-boot-beginner-guide.md)** - Zero-to-hero Spring Boot tutorial
+
+### 🚀 运维与监控
+6. **[Docker Beginner Guide](doc/06-docker-beginner-guide.md)** - Docker fundamentals and containerization
+7. **[ELK Beginner Guide](doc/09-elk-beginner-guide.md)** - ⭐ Zero-knowledge ELK Stack introduction (START HERE for ELK)
+8. **[ELK Deployment Guide](doc/07-elk-deployment-guide.md)** - Production ELK Stack deployment
+9. **[Logging Best Practices](doc/08-logging-best-practices.md)** - Enterprise logging strategies and optimization
+
+### 🔧 实战指南
+10. **[Reading Code Guide](doc/reading-code-guide.md)** - How to read and understand existing code
+11. **[Writing Code Guide](doc/writing-code-guide.md)** - Bug fixing and feature development
+12. **[Team Collaboration Guide](doc/team-collaboration-guide.md)** - Git workflow and team best practices
+
+**完整文档索引**: See [doc/README.md](doc/README.md) for full documentation catalog
 
 ## Working with Claude Code
 
@@ -400,3 +434,6 @@ This project is optimized for Claude Code development:
 - "Explain the Oracle RAC configuration"
 - "Run tests and fix any failures"
 - "Add a new JPA entity for [table_name]"
+- "Start the ELK Stack" (starts Elasticsearch + Logstash + Kibana)
+- "Explain how logging works in this project"
+- "Help me configure ELK for the first time"

@@ -144,6 +144,106 @@
 
 ---
 
+## 🚀 运维与监控系列
+
+9. **[Docker 零基础入门指南](06-docker-beginner-guide.md)** 🐳 完全零基础必读
+   - 🎯 **适用场景**: 完全不懂 Docker，需要从零开始学习
+   - 👥 **目标读者**: Docker 零基础的开发者
+   - 📖 **内容概要**:
+     - Docker 是什么（用生活中的例子讲解）
+     - Docker 核心概念（镜像、容器、仓库）
+     - Docker 基础命令速查
+     - Dockerfile 编写实战
+     - Docker Compose 多容器编排
+     - 网络和数据卷管理
+     - 实战案例：部署 Spring Boot 应用
+     - 常见问题与解决方案
+   - ⏱️ **阅读时长**: 约 60-80 分钟
+   - 💡 **建议**: 🔥 Docker 零基础必读！通俗易懂，手把手教学
+
+10. **[ELK Stack 零基础入门指南](09-elk-beginner-guide.md)** 🔍 新手必读
+    - 🎯 **适用场景**: 完全不懂 ELK，需要从零开始学习日志管理
+    - 👥 **目标读者**: ELK 零基础的开发者
+    - 📖 **内容概要**:
+      - **第1章**: 什么是 ELK（用餐馆类比通俗讲解）
+      - **第2章**: ELK 三个组件详解（Elasticsearch、Logstash、Kibana）
+      - **第3章**: ELK 完整工作流程（数据流向、时序图）
+      - **第4章**: 实战：启动你的第一个 ELK 环境
+      - **第5章**: Kibana 使用入门（搜索、可视化、仪表板）
+      - **第6章**: 新手常见问题（完整排查清单）
+      - **第7章**: 速查手册（命令、查询语法、配置文件）
+    - ⏱️ **阅读时长**: 约 90-120 分钟
+    - 💡 **建议**: 🔥 ELK 零基础必读！从概念到实战，一篇搞定
+
+11. **[ELK Stack 生产环境部署指南](07-elk-deployment-guide.md)** 📦 进阶必读
+    - 🎯 **适用场景**: 需要在生产环境部署 ELK Stack
+    - 👥 **目标读者**: 掌握 ELK 基础，需要实际部署的运维或开发人员
+    - 📖 **内容概要**:
+      - ELK 架构设计（独立部署的优势）
+      - ELK Stack 快速部署（Docker Compose）
+      - 生产环境配置优化（内存、持久化、安全）
+      - Spring Boot 应用集成（Logback 配置）
+      - Kibana 使用指南（查询、可视化、仪表板）
+      - 运维管理（索引管理、备份、性能监控）
+      - 故障排查（完整问题诊断流程）
+    - ⏱️ **阅读时长**: 约 60-90 分钟
+    - 💡 **建议**: 先学习 09-elk-beginner-guide.md 掌握基础概念
+
+12. **[日志管理最佳实践](08-logging-best-practices.md)** 📊 高级必读
+    - 🎯 **适用场景**: 需要优化日志系统，降低成本，提高效率
+    - 👥 **目标读者**: 掌握 ELK 基础，需要优化日志架构的开发者
+    - 📖 **内容概要**:
+      - 为什么需要混合日志存储（性能、成本、可靠性）
+      - 企业级日志分流策略（按级别、按业务、按环境）
+      - 实战配置示例（Logback + Logstash 完整配置）
+      - 日志级别选择指南（ERROR/WARN/INFO/DEBUG/TRACE）
+      - 性能优化建议（异步日志、队列配置、批处理）
+      - 故障处理策略（降级、限流、备份）
+      - 最佳实践清单（推荐做法 vs 避免的做法）
+    - ⏱️ **阅读时长**: 约 40-60 分钟
+    - 💡 **建议**: 解答"为什么有些用 Logstash，有些用 Filebeat"等实际问题
+
+**ELK 学习路径**：
+```
+ELK 零基础入门指南（09-elk-beginner-guide.md）
+    ↓ 掌握 ELK 基础概念和操作
+ELK 生产环境部署指南（07-elk-deployment-guide.md）
+    ↓ 学会独立部署和集成
+日志管理最佳实践（08-logging-best-practices.md）
+    ↓ 优化日志系统，降本增效
+成为日志管理专家 🚀
+```
+
+---
+
+## 🔧 DevOps 系列
+
+13. **[CI/CD 流水线搭建指南](cicd-setup-guide.md)**
+    - 🎯 **适用场景**: 搭建企业级 CI/CD 流水线
+    - 👥 **目标读者**: DevOps 工程师和开发团队
+    - 📖 **内容概要**:
+      - CI/CD 核心概念和流程
+      - Jenkins/GitLab CI/GitHub Actions 配置
+      - 自动化测试集成
+      - Docker 镜像构建和推送
+      - 自动化部署策略
+    - ⏱️ **阅读时长**: 约 50-70 分钟
+    - 💡 **建议**: 提升团队开发效率的关键
+
+14. **[发布管理指南](release-management-guide.md)**
+    - 🎯 **适用场景**: 规范化版本发布流程
+    - 👥 **目标读者**: 项目负责人、DevOps 工程师
+    - 📖 **内容概要**:
+      - 版本号管理规范（语义化版本）
+      - 发布流程和检查清单
+      - 回滚策略
+      - 发布风险管理
+      - 发布后监控
+    - ⏱️ **阅读时长**: 约 30-40 分钟
+    - 💡 **建议**: 保障生产环境稳定性
+
+---
+
 ## 📋 文档规划
 
 以下是计划编写的文档列表：
@@ -167,17 +267,18 @@
 
 ### 中间件系列
 - [ ] Kafka 4.0 消息队列实践
-- [ ] Docker 容器化部署指南
+- [x] Docker 容器化部署指南 → 见 [06-docker-beginner-guide.md](06-docker-beginner-guide.md)
 - [ ] Kubernetes 部署实战
 
 ### 监控与运维系列
 - [ ] Prometheus + Grafana 监控体系搭建
-- [ ] 日志管理与 ELK Stack
+- [x] 日志管理与 ELK Stack → 见 [09-elk-beginner-guide.md](09-elk-beginner-guide.md), [07-elk-deployment-guide.md](07-elk-deployment-guide.md), [08-logging-best-practices.md](08-logging-best-practices.md)
 - [ ] 应用性能调优指南
 
 ### DevOps 系列
 - [ ] Git 工作流与分支管理策略
-- [ ] CI/CD 流水线搭建
+- [x] CI/CD 流水线搭建 → 见 [cicd-setup-guide.md](cicd-setup-guide.md)
+- [x] 发布管理指南 → 见 [release-management-guide.md](release-management-guide.md)
 - [ ] Terraform/OpenTofu 基础设施即代码
 
 ---
@@ -227,6 +328,6 @@
 
 ---
 
-**文档库版本**: v1.0
-**最后更新**: 2025-11-13
+**文档库版本**: v1.1
+**最后更新**: 2025-01-20
 **维护**: DevOps Course Team

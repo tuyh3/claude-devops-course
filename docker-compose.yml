@@ -80,6 +80,10 @@ services:
       LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
       LOGGING_FILE_NAME: /var/log/app/application.log
 
+      # ELK Stack 配置（连接到独立部署的 Logstash）
+      LOGSTASH_HOST: ${LOGSTASH_HOST:-localhost}
+      LOGSTASH_PORT: ${LOGSTASH_PORT:-5000}
+
     # 数据卷挂载
     volumes:
       - app-logs:/var/log/app

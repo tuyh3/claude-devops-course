@@ -111,6 +111,40 @@ docker-compose logs -f app
 curl http://localhost:8080/actuator/health
 ```
 
+### ELK Stack 日志中间件部署
+
+ELK Stack 作为独立中间件，为应用提供集中式日志管理：
+
+```bash
+# 1. 进入 ELK 目录
+cd elk
+
+# 2. 启动 ELK Stack (Elasticsearch + Logstash + Kibana)
+docker-compose up -d
+
+# 3. 查看服务状态
+docker-compose ps
+
+# 4. 初始化 Kibana（创建索引模式）
+./scripts/init-kibana.sh
+
+# 5. 访问 Kibana 日志查询界面
+open http://localhost:5601
+```
+
+**服务端口**:
+- Elasticsearch: http://localhost:9200
+- Logstash: TCP 5000 (应用日志接收)
+- Kibana: http://localhost:5601
+
+**应用集成**: 应用已自动配置日志输出到 Logstash，只需设置环境变量：
+```bash
+export LOGSTASH_HOST=localhost
+export LOGSTASH_PORT=5000
+```
+
+详细部署和使用说明请参考: [ELK Stack 部署与集成指南](doc/07-elk-deployment-guide.md)
+
 ### CI/CD 支持
 
 本项目包含完整的企业级 CI/CD 配置：
@@ -168,7 +202,7 @@ curl http://localhost:8080/actuator/health
 | Prometheus | 3.5.0 (LTS) | 规划中 |
 | Grafana | v12.x | 规划中 |
 | Zabbix | 7.0 LTS | 规划中 |
-| ELK Stack | 9.2.1 | 规划中 |
+| ELK Stack | 8.11.0 | ⭐ 项目使用 |
 | Filebeat | 9.2.1 | 规划中 |
 | **容器与编排** |
 | Docker | 24.x LTS | 规划中 |
@@ -238,23 +272,39 @@ curl http://localhost:8080/actuator/health
    - 时长：120-150 分钟（完整版）
    - 重点：从客户端/服务器开始讲起，手把手教学，读懂代码、写代码、调试代码
 
+### 部署与运维指南
+
+基础设施和中间件部署文档：
+
+6. **[Docker 快速上手指南](doc/06-docker-beginner-guide.md)** 🐳 容器化必读
+   - 适合：需要部署应用但不熟悉 Docker 的开发者
+   - 内容：Docker 基础概念、Linux 安装配置、常用命令、Dockerfile 编写、Docker Compose
+   - 时长：60-90 分钟
+   - 重点：快速掌握 Docker 在工作中的实际应用
+
+7. **[ELK Stack 部署与集成指南](doc/07-elk-deployment-guide.md)** 📊 日志管理必读
+   - 适合：需要搭建日志系统或集成 ELK 的开发者和运维人员
+   - 内容：ELK 独立部署、Spring Boot 集成、Kibana 使用、运维管理、故障排查
+   - 时长：90-120 分钟
+   - 重点：将 ELK 作为独立中间件部署，实现集中式日志管理
+
 ### 实战指南系列
 
 完成入门学习后，通过实战指南提升开发能力：
 
-6. **[实战阅读代码指南](doc/reading-code-guide.md)** 📖 Phase 1: 会读代码
+8. **[实战阅读代码指南](doc/reading-code-guide.md)** 📖 Phase 1: 会读代码
    - 适合：需要快速了解项目代码结构和定位问题的开发者
    - 内容：5分钟了解项目、从界面定位代码、日志分析、断点调试、阅读复杂代码
    - 时长：50-70 分钟
    - 重点：从用户界面功能快速定位到具体代码位置
 
-7. **[实战编写代码指南](doc/writing-code-guide.md)** ✍️ Phase 2: 会写代码
+9. **[实战编写代码指南](doc/writing-code-guide.md)** ✍️ Phase 2: 会写代码
    - 适合：需要修复 Bug 或开发新功能的开发者
    - 内容：Bug 修复流程、新功能开发、单元测试、AI 辅助开发、Git 版本控制、代码质量
    - 时长：60-90 分钟
    - 重点：完整的开发工作流程，从需求到上线
 
-8. **[团队协作指南](doc/team-collaboration-guide.md)** 🤝 Phase 3: 会协作
+10. **[团队协作指南](doc/team-collaboration-guide.md)** 🤝 Phase 3: 会协作
    - 适合：需要与团队成员协作开发的开发者
    - 内容：Git Flow 工作流、Pull Request、CI/CD、环境管理、监控日志、团队沟通
    - 时长：60-80 分钟
