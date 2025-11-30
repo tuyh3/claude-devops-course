@@ -199,7 +199,7 @@ alerting:
   alertmanagers:
   - static_configs:
     - targets:
-      - localhost:9093
+      - 127.0.0.1:9093
 
 # 告警规则文件
 rule_files:
@@ -210,7 +210,7 @@ scrape_configs:
   # Prometheus 自监控
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['127.0.0.1:9090']
 
   # 节点监控 (使用文件服务发现)
   - job_name: 'nodes'
@@ -239,7 +239,7 @@ mkdir -p ~/prometheus/{rules,targets}
 ```json
 [
   {
-    "targets": ["localhost:9100"],
+    "targets": ["127.0.0.1:9100"],
     "labels": {
       "job": "node",
       "env": "production",
@@ -254,7 +254,7 @@ mkdir -p ~/prometheus/{rules,targets}
 ```json
 [
   {
-    "targets": ["localhost:8080"],
+    "targets": ["127.0.0.1:8080"],
     "labels": {
       "job": "spring-boot",
       "app": "tcbs-system",
@@ -472,7 +472,7 @@ echo "=== 监控服务状态检查 ==="
 if pgrep -f "./bin/prometheus" > /dev/null; then
     PID=$(pgrep -f "./bin/prometheus")
     echo "✓ Prometheus 运行中 (PID: $PID)"
-    echo "  访问地址: http://localhost:9090"
+    echo "  访问地址: http://127.0.0.1:9090"
 else
     echo "✗ Prometheus 未运行"
 fi
@@ -481,7 +481,7 @@ fi
 if pgrep -f "./bin/node_exporter" > /dev/null; then
     PID=$(pgrep -f "./bin/node_exporter")
     echo "✓ Node Exporter 运行中 (PID: $PID)"
-    echo "  访问地址: http://localhost:9100"
+    echo "  访问地址: http://127.0.0.1:9100"
 else
     echo "✗ Node Exporter 未运行"
 fi
@@ -490,7 +490,7 @@ fi
 if pgrep -f "./bin/alertmanager" > /dev/null; then
     PID=$(pgrep -f "./bin/alertmanager")
     echo "✓ AlertManager 运行中 (PID: $PID)"
-    echo "  访问地址: http://localhost:9093"
+    echo "  访问地址: http://127.0.0.1:9093"
 else
     echo "✗ AlertManager 未运行"
 fi
@@ -537,14 +537,14 @@ mkdir -p ~/alertmanager/logs
 ### 7. 验证部署
 
 ```bash
-# 检查 Prometheus 
-curl http://localhost:9090/api/v1/targets
+# 检查 Prometheus
+curl http://127.0.0.1:9090/api/v1/targets
 
 # 检查 Node Exporter
-curl http://localhost:9100/metrics | head -10
+curl http://127.0.0.1:9100/metrics | head -10
 
-# 检查 AlertManager
-curl http://localhost:9093/api/v1/status
+# 检查 AlertManager (使用 v2 API)
+curl http://127.0.0.1:9093/api/v2/status
 
 # 浏览器访问
 # Prometheus: http://your-server:9090
@@ -573,10 +573,10 @@ tar -xzf node_exporter-1.8.2.linux-amd64.tar.gz
 ```json
 [
   {
-    "targets": ["localhost:9100"],
+    "targets": ["127.0.0.1:9100"],
     "labels": {
       "job": "node",
-      "env": "production", 
+      "env": "production",
       "region": "local"
     }
   },
@@ -595,7 +595,7 @@ tar -xzf node_exporter-1.8.2.linux-amd64.tar.gz
 
 ```bash
 # Prometheus 支持热重载
-curl -X POST http://localhost:9090/-/reload
+curl -X POST http://127.0.0.1:9090/-/reload
 
 # 或重启 Prometheus 服务
 ~/stop_all.sh
@@ -637,7 +637,7 @@ management:
 ```json
 [
   {
-    "targets": ["localhost:8080"],
+    "targets": ["127.0.0.1:8080"],
     "labels": {
       "job": "spring-boot",
       "app": "tcbs-system",
@@ -797,7 +797,7 @@ groups:
 ~/prometheus/start_prometheus.sh
 
 # 验证告警规则
-curl http://localhost:9090/api/v1/rules | jq '.data.groups[].rules[].name'
+curl http://127.0.0.1:9090/api/v1/rules | jq '.data.groups[].rules[].name'
 ```
 
 ---
@@ -1001,8 +1001,8 @@ chmod +x ~/start_all.sh
 #### 添加 Prometheus 数据源
 
 1. **导航到**: Configuration → Data Sources
-2. **添加数据源**: 选择 "Prometheus"  
-3. **配置 URL**: `http://localhost:9090`
+2. **添加数据源**: 选择 "Prometheus"
+3. **配置 URL**: `http://127.0.0.1:9090`
 4. **保存并测试**
 
 ### 3. 导入仪表板
@@ -1104,19 +1104,19 @@ chmod +x ~/start_all.sh
 echo '{"targets": ["192.168.1.101:9100"], "labels": {"job": "node", "env": "test"}}' >> ~/prometheus/targets/nodes.json
 
 # 重载 Prometheus 配置
-curl -X POST http://localhost:9090/-/reload
+curl -X POST http://127.0.0.1:9090/-/reload
 
 # 查看所有监控目标
-curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[].labels'
+curl http://127.0.0.1:9090/api/v1/targets | jq '.data.activeTargets[].labels'
 ```
 
 ### 查询调试
 
 ```bash
 # PromQL 查询示例
-curl 'http://localhost:9090/api/v1/query?query=up' | jq '.'
-curl 'http://localhost:9090/api/v1/query?query=node_memory_MemTotal_bytes' | jq '.'
-curl 'http://localhost:9090/api/v1/query?query=rate(node_cpu_seconds_total[5m])' | jq '.'
+curl 'http://127.0.0.1:9090/api/v1/query?query=up' | jq '.'
+curl 'http://127.0.0.1:9090/api/v1/query?query=node_memory_MemTotal_bytes' | jq '.'
+curl 'http://127.0.0.1:9090/api/v1/query?query=rate(node_cpu_seconds_total[5m])' | jq '.'
 ```
 
 ### 服务管理
