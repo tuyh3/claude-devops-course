@@ -488,7 +488,33 @@ EOF
 chmod +x ~/check_status.sh
 ```
 
-### 5. 启动服务
+### 5. 创建 AlertManager 默认配置
+
+> **重要**: AlertManager 启动前必须有配置文件，否则会启动失败。
+
+```bash
+# 创建 AlertManager 默认配置文件
+cat > ~/alertmanager/alertmanager.yml << 'EOF'
+# AlertManager 默认配置
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+
+receivers:
+- name: 'default'
+  # 默认不发送通知，后续可配置邮件/钉钉等
+EOF
+
+echo "AlertManager 配置文件已创建: ~/alertmanager/alertmanager.yml"
+```
+
+### 6. 启动服务
 
 ```bash
 # 确保以 monitor 用户身份执行
@@ -496,7 +522,7 @@ su - monitor
 
 # 创建必要的目录
 mkdir -p ~/prometheus/logs
-mkdir -p ~/node_exporter/logs  
+mkdir -p ~/node_exporter/logs
 mkdir -p ~/alertmanager/logs
 
 # 启动所有服务
@@ -508,7 +534,7 @@ mkdir -p ~/alertmanager/logs
 ~/check_status.sh
 ```
 
-### 6. 验证部署
+### 7. 验证部署
 
 ```bash
 # 检查 Prometheus 
