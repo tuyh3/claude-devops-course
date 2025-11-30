@@ -264,7 +264,33 @@ mkdir -p ~/prometheus/{rules,targets}
 ]
 ```
 
-### 4. 创建启动脚本
+### 4. 配置 AlertManager
+
+> **重要**: AlertManager 启动前必须有配置文件，否则会启动失败。
+
+```bash
+# 创建 AlertManager 默认配置文件
+cat > ~/alertmanager/alertmanager.yml << 'EOF'
+# AlertManager 默认配置
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+
+receivers:
+- name: 'default'
+  # 默认不发送通知，后续可在"告警配置"章节配置邮件/钉钉等
+EOF
+
+echo "AlertManager 配置文件已创建: ~/alertmanager/alertmanager.yml"
+```
+
+### 5. 创建启动脚本
 
 #### 创建 Prometheus 启动脚本
 
@@ -486,32 +512,6 @@ EOF
 
 # 赋予执行权限
 chmod +x ~/check_status.sh
-```
-
-### 5. 创建 AlertManager 默认配置
-
-> **重要**: AlertManager 启动前必须有配置文件，否则会启动失败。
-
-```bash
-# 创建 AlertManager 默认配置文件
-cat > ~/alertmanager/alertmanager.yml << 'EOF'
-# AlertManager 默认配置
-global:
-  resolve_timeout: 5m
-
-route:
-  group_by: ['alertname', 'job']
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 12h
-  receiver: 'default'
-
-receivers:
-- name: 'default'
-  # 默认不发送通知，后续可配置邮件/钉钉等
-EOF
-
-echo "AlertManager 配置文件已创建: ~/alertmanager/alertmanager.yml"
 ```
 
 ### 6. 启动服务
